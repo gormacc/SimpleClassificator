@@ -2,48 +2,33 @@
 #include <stdlib.h>
 #include <string.h>
 
-const char* getfield(char* line, int num)
-{
-	const char* tok;
-	for (tok = strtok_s(line, 1024, ",");
-		tok && *tok;
-		tok = strtok_s(NULL, 1024, ",\n"))
-	{
-		if (!--num)
-			return tok;
-	}
-	return NULL;
-}
-
 void readFile(char* fileName) 
 {
 	FILE* stream;
-	fopen_s(&stream ,fileName, "r");
+	errno_t err = fopen_s(&stream , fileName, "r");
+
+	if (NULL == stream) 
+	{
+		printf("Podano zly plik");
+		return EXIT_FAILURE;
+	}
 
 	char line[1024];
 	while (fgets(line, 1024, stream))
 	{
-		char* tmp = strdup_s(line);
-		printf("Field 3 would be %s\n", getfield(tmp, 3));
-		free(tmp);
+		printf("%s", line);
 	}
-}
-
-char* askForString() 
-{
-	int rc;
-	char buff[1025];
-
-	rc = getLine("Enter string> ", buff, sizeof(buff));
-	if (-1 != rc)
-		puts(buff);
-
-	return buff;
+	
 }
 
 int main()
 {
-	readFile(askForString());
+	printf("Podaj nazwe pliku\n");
+	char fileName[1024];
+	scanf_s("%s", fileName, sizeof(fileName));
+	
+	readFile(fileName);
+	scanf_s("%s", fileName, sizeof(fileName));
 	return 0;
 }
 
