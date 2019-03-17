@@ -10,16 +10,69 @@ struct CsvData {
 	double** data;
 };
 
-void readFile(char* fileName) 
+void printData(struct CsvData data)
+{
+	int i, j;
+	printf("Headers:\n");
+	for (i = 0; i < data.columns + 1; i++)
+	{
+		printf("%s\n", data.headers[i]);
+	}
+
+	printf("Classes:\n");
+	for (i = 0; i < data.rows; i++)
+	{
+		printf("%s\n", data.classes[i]);
+	}
+
+	printf("Data:\n");
+	for (i = 0; i < data.rows; i++)
+	{
+		for (j = 0; j < data.columns; j++)
+		{
+			printf("%f  ", data.data[i][j]);
+		}
+		printf("\n");
+	}
+}
+
+struct CsvData allocCsvData(int rows, int columns)
+{
+	struct CsvData csvData;
+	int i;
+
+	csvData.columns = columns;
+	csvData.rows = rows;
+
+	csvData.headers = (char**)malloc(sizeof(char*) * (columns+1));
+	for (i = 0; i < (columns + 1); i++)
+	{
+		csvData.headers[i] = (char *)malloc(sizeof(char) * 1024);
+	}
+
+	csvData.classes = (char**)malloc(sizeof(char*) * (rows));
+	for (i = 0; i < rows; i++)
+	{
+		csvData.classes[i] = (char *)malloc(sizeof(char) * 1024);
+	}
+
+	csvData.data = (double**)malloc(sizeof(double*) * (rows));
+	for (i = 0; i < rows; i++)
+	{
+		csvData.data[i] = (double *)malloc(sizeof(double) * (columns));
+	}
+	return csvData;
+}
+
+int readFile(char* fileName, struct CsvData* csvData) 
 {
 	FILE* stream;
 	errno_t err = fopen_s(&stream , fileName, "r");
-	struct CsvData csvData;
 
 	if (NULL == stream) 
 	{
 		printf("Podano zly plik");
-		return EXIT_FAILURE;
+		return 0;
 	}
 
 	int rows = 0;
@@ -38,31 +91,11 @@ void readFile(char* fileName)
 
 	fseek(stream, 0, SEEK_SET);
 
-	csvData.columns = columns - 1;
-	csvData.rows = rows - 1;
-
-
+	*csvData = allocCsvData(rows - 1, columns - 1);
 	char line[1024];
 	int crow = 0;
 	int i,j,k;
-
-	csvData.headers = (char**)malloc(sizeof(char*) * columns);
-	for (i = 0; i < columns; i++)
-	{
-		csvData.headers[i] = (char *)malloc(sizeof(char) * 1024);
-	}
-
-	csvData.classes = (char**)malloc(sizeof(char*) * (rows - 1));
-	for (i = 0; i < rows-1; i++)
-	{
-		csvData.classes[i] = (char *)malloc(sizeof(char) * 1024);
-	}
-
-	csvData.data = (double**)malloc(sizeof(double*) * (rows - 1));
-	for (i = 0; i < rows - 1; i++)
-	{
-		csvData.data[i] = (double *)malloc(sizeof(double) * (columns - 1));
-	}
+	
 	while (fgets(line, 1024, stream))
 	{
 		if (0 == crow) // headery
@@ -73,18 +106,18 @@ void readFile(char* fileName)
 			while (line[k] != '\n') 
 			{
 				if (line[k] == ',') {
-					csvData.headers[i][j] = '\0';
+					csvData->headers[i][j] = '\0';
 					i++;
 					j = 0;
 					k++;
 					continue;
 				}
-				csvData.headers[i][j] = line[k];
+				csvData->headers[i][j] = line[k];
 
 				j++;
 				k++;
 			}
-			csvData.headers[i][j] = '\0';
+			csvData->headers[i][j] = '\0';
 		} // headery
 		else { // reszta
 
@@ -101,7 +134,7 @@ void readFile(char* fileName)
 				{
 					if (1 == cclass) 
 					{
-						csvData.classes[crow-1][j] = '\0';
+						csvData->classes[crow-1][j] = '\0';
 						cclass = 0;
 						j = 0;
 					}
@@ -110,7 +143,7 @@ void readFile(char* fileName)
 						preValue[j] = '\0';
 						j = 0;
 						value = atof(preValue);
-						csvData.data[crow - 1][i] = value;
+						csvData->data[crow - 1][i] = value;
 						i++;
 					}
 
@@ -120,7 +153,7 @@ void readFile(char* fileName)
 
 				if (1 == cclass) 
 				{
-					csvData.classes[crow-1][j] = line[k];
+					csvData->classes[crow-1][j] = line[k];
 				}
 				else 
 				{
@@ -131,7 +164,7 @@ void readFile(char* fileName)
 			}
 			preValue[j] = '\0';
 			value = atof(preValue);
-			csvData.data[crow - 1][i] = value;
+			csvData->data[crow - 1][i] = value;
 
 		} // reszta
 		crow++;
@@ -142,41 +175,176 @@ void readFile(char* fileName)
 		fclose(stream);
 	}
 
-	// sprawdzenie
+	return 1;
+}
 
-	printf("Headers:\n");
-	for (i = 0; i < columns; i++) 
+int askForFilesNumber() 
+{
+	int keepAsking = 1;
+	int numOfFiles;
+	char answer[10];
+	while (keepAsking == 1) 
 	{
-		printf("%s\n", csvData.headers[i]);
-	}
-
-	printf("Classes:\n");
-	for (i = 0; i < rows-1; i++)
-	{
-		printf("%s\n", csvData.classes[i]);
-	}
-
-	printf("Data:\n");
-	for (i = 0; i < rows - 1; i++)
-	{
-		for (j = 0; j < columns - 1; j++)
+		printf("Podaj ilosc plikow do wczytania\n");
+		scanf_s("%s", answer, sizeof(answer));
+		numOfFiles = atoi(answer);
+		if (numOfFiles == 1 || numOfFiles == 2) 
 		{
-			printf("%f  ", csvData.data[i][j]);
+			keepAsking = 0;
 		}
-		printf("\n");
+		else 
+		{
+			printf("Podano zla ilosc plikow\n");
+		}
+	}
+	return numOfFiles;
+}
+
+void readOneFile(struct CsvData* trainData, struct CsvData* testData)
+{
+	char fileName[1024];
+	int keepAsking = 1;
+	struct CsvData oneFileData;
+	while (keepAsking == 1) 
+	{
+		printf("Podaj nazwe pliku\n");
+		scanf_s("%s", fileName, sizeof(fileName));
+		if (readFile(fileName, &oneFileData) == 1) 
+		{
+			keepAsking = 0;
+		}
 	}
 
-	//sprawdzenie
+	//printf("Wczytano poni¿sze dane\n\n");
+	//printData(oneFileData);
+
+	char proportion[10];
+	keepAsking = 1;
+	int prop;
+	while (keepAsking == 1) 
+	{
+		printf("\n\nPodaj proporcje podzialu na dane trenujace i testowe\n");
+		scanf_s("%s", proportion, sizeof(proportion));
+		prop = atoi(proportion);
+		if (prop > 0 && prop < 100)
+		{
+			keepAsking = 0;
+		}
+		else
+		{
+			printf("Podano zle proporcje\n");
+		}
+	}
+	
+	int trainRows = ( oneFileData.rows * prop ) / 100;
+	int testRows = oneFileData.rows - trainRows;
+
+	*trainData = allocCsvData(trainRows, oneFileData.columns);
+	*testData = allocCsvData(testRows, oneFileData.columns);
+
+	int i, j, k;
+
+	for (i = 0; i < oneFileData.columns + 1; i++)
+	{
+		j = 0;
+		char c = oneFileData.headers[i][j];
+		while (c != '\0')
+		{
+			trainData->headers[i][j] = c;
+			testData->headers[i][j] = c;
+			j++;
+			c = oneFileData.headers[i][j];
+		}
+		trainData->headers[i][j] = '\0';
+		testData->headers[i][j] = '\0';
+	}
+
+	for (i = 0; i < trainRows; i++)
+	{
+		j = 0;
+		char c = oneFileData.classes[i][j];
+		while (c != '\0')
+		{
+			trainData->classes[i][j] = c;
+			j++;
+			c = oneFileData.classes[i][j];
+		}
+		trainData->classes[i][j] = '\0';
+
+		for (j = 0; j < oneFileData.columns; j++)
+		{
+			trainData->data[i][j] = oneFileData.data[i][j];
+		}
+	}
+
+	k = 0;
+	for (i = trainRows; i < oneFileData.rows; i++)
+	{
+		j = 0;
+		char c = oneFileData.classes[i][j];
+		while (c != '\0')
+		{
+			testData->classes[k][j] = c;
+			j++;
+			c = oneFileData.classes[i][j];
+		}
+		testData->classes[k][j] = '\0';
+
+		for (j = 0; j < oneFileData.columns; j++)
+		{
+			testData->data[k][j] = oneFileData.data[i][j];
+		}
+		k++;
+	}
+}
+
+void readTwoFiles(struct CsvData* trainData, struct CsvData* testData)
+{
+	char fileName[1024];
+	int keepAsking = 1;
+	while (keepAsking == 1)
+	{
+		printf("Podaj nazwe pierwszego pliku\n");
+		scanf_s("%s", fileName, sizeof(fileName));
+		if (readFile(fileName, trainData) == 1)
+		{
+			keepAsking = 0;
+		}
+	}
+
+	keepAsking = 1;
+	while (keepAsking == 1)
+	{
+		printf("Podaj nazwe drugiego pliku\n");
+		scanf_s("%s", fileName, sizeof(fileName));
+		if (readFile(fileName, testData) == 1)
+		{
+			keepAsking = 0;
+		}
+	}
 
 }
 
 int main()
 {
-	printf("Podaj nazwe pliku\n");
-	char fileName[1024];
-	scanf_s("%s", fileName, sizeof(fileName));
-	
-	readFile("iris.csv"); // todo
+	struct CsvData trainData;
+	struct CsvData testData;
+	if (askForFilesNumber() == 1) 
+	{
+		readOneFile(&trainData, &testData);
+	}
+	else
+	{
+		readTwoFiles(&trainData, &testData);
+	}
+
+	printf("\n\nWczytano podany zbior trenujacy : \n\n");
+	printData(trainData);
+	printf("\n\nWczytano podany zbior testowy : \n\n");
+	printData(testData);
+
+	char fileName[10];
+	printf("Podaj proporcje podzialu danych\n");
 	scanf_s("%s", fileName, sizeof(fileName));
 	return 0;
 }
