@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <float.h>
 
 struct CsvData {
 	int columns;
@@ -325,6 +326,60 @@ void readTwoFiles(struct CsvData* trainData, struct CsvData* testData)
 
 }
 
+void normalizeData(struct CsvData* data)
+{
+	double min = DBL_MAX;
+	double max = DBL_MIN;
+	int i,j;
+	double value;
+
+	for (i = 0; i < data->rows; i++)
+	{
+		for (j = 0; j < data->columns; j++)
+		{
+			value = data->data[i][j];
+			max = value >= max ? value : max;
+			min = value <= min ? value : min;
+		}
+	}
+
+	for (i = 0; i < data->rows; i++)
+	{
+		for (j = 0; j < data->columns; j++)
+		{
+			data->data[i][j] = (data->data[i][j] - min) / (max - min);
+		}
+	}
+}
+
+int askForNormalization()
+{
+	int keepAsking = 1;
+	char answer[10];
+	int normalize;
+	while (keepAsking == 1)
+	{
+		printf("Czy chcesz znormalizowac dane?\n");
+		scanf_s("%s", answer, sizeof(answer));
+		
+		if (strcmp(answer, "tak") == 0)
+		{
+			normalize = 1;
+			keepAsking = 0;
+		}
+		else if (strcmp(answer, "nie") == 0)
+		{
+			normalize = 0;
+			keepAsking = 0;
+		}
+		else
+		{
+			printf("Nieoczekiwana odpowiedz\n");
+		}
+	}
+	return normalize;
+}
+
 int main()
 {
 	struct CsvData trainData;
@@ -342,6 +397,17 @@ int main()
 	printData(trainData);
 	printf("\n\nWczytano podany zbior testowy : \n\n");
 	printData(testData);
+
+	if (askForNormalization() == 1)
+	{
+		normalizeData(&trainData);
+		normalizeData(&testData);
+
+		printf("\n\n Zbior trenujacy po normalizacji : \n\n");
+		printData(trainData);
+		printf("\n\n Zbior testowy po normalizacji : \n\n");
+		printData(testData);
+	}
 
 	char fileName[10];
 	printf("Podaj proporcje podzialu danych\n");
