@@ -380,6 +380,101 @@ int askForNormalization()
 	return normalize;
 }
 
+int askForCrossValidation(int rows)
+{
+	int keepAsking = 1;
+	char answer[10];
+	int cv, val;
+	while (keepAsking == 1)
+	{
+		printf("Podaj typ walidacji\n");
+		scanf_s("%s", answer, sizeof(answer));
+
+		if (strcmp(answer, "LOO") == 0)
+		{
+			cv = rows;
+			keepAsking = 0;
+		}
+		else
+		{
+			val = atoi(answer);
+			if (val >= 1 && val <= 10)
+			{
+				cv = val;
+				keepAsking = 0;
+			}
+		}
+	}
+	return cv;
+}
+
+struct CsvData deleteRowsInSet(struct CsvData trainData, int startIndex, int endIndex, struct CsvData* newSet)
+{
+	int rowsCount = trainData.rows - (endIndex - startIndex);
+	*newSet = allocCsvData(rowsCount, trainData.columns);
+	int i, j, k;
+
+	for (i = 0; i < trainData.columns + 1; i++)
+	{
+		j = 0;
+		char c = trainData.headers[i][j];
+		while (c != '\0')
+		{
+			newSet->headers[i][j] = c;
+			j++;
+			c = trainData.headers[i][j];
+		}
+		newSet->headers[i][j] = '\0';
+	}
+
+	k = 0;
+	for (i = 0; i < trainData.rows; i++)
+	{
+		if (i >= startIndex && i < endIndex) continue;
+		j = 0;
+		char c = trainData.classes[i][j];
+		while (c != '\0')
+		{
+			newSet->classes[k][j] = c;
+			j++;
+			c = trainData.classes[i][j];
+		}
+		newSet->classes[k][j] = '\0';
+
+		for (j = 0; j < trainData.columns; j++)
+		{
+			newSet->data[k][j] = trainData.data[i][j];
+		}
+		k++;
+	}
+}
+
+void crossValidate(struct CsvData trainData, int cvk)
+{
+	if (cvk == 1)
+	{
+		//run the SVM on one set and return
+	}
+
+	int trainSetAmount = trainData.rows / cvk;
+	int startIndex, endIndex, newEndIndex;
+	int i;
+	struct CsvData tempTrainSet;
+
+	startIndex = 0;
+	for (int i = 0; i < cvk; i++)
+	{
+		newEndIndex = startIndex + trainSetAmount;
+		endIndex = newEndIndex > trainData.rows ? trainData.rows : newEndIndex;
+		deleteRowsInSet(trainData, startIndex, endIndex, &tempTrainSet);
+
+		printf("\n\n %d z %d zbiorow testowych z cross walidacji : \n\n", i+1, cvk);
+		printData(tempTrainSet);
+
+		// run the SVM on the created set
+	}
+}
+
 int main()
 {
 	struct CsvData trainData;
@@ -408,6 +503,8 @@ int main()
 		printf("\n\n Zbior testowy po normalizacji : \n\n");
 		printData(testData);
 	}
+
+	crossValidate(trainData, askForCrossValidation(trainData.rows));
 
 	char fileName[10];
 	printf("Podaj proporcje podzialu danych\n");
