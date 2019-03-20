@@ -2,14 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <float.h>
+#include "SVM.h"
 
-struct CsvData {
-	int columns;
-	int rows;
-	char** headers;
-	char** classes;
-	double** data;
-};
+
 
 void printData(struct CsvData data)
 {
