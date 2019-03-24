@@ -35,3 +35,8 @@ typedef struct {
 	int deg;//polynomial degree
 }SVMParams;
 
+typedef struct {
+	double* w;//penalty parameter
+	double b;
+}Classificator;
+
