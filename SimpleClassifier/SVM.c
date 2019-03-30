@@ -3,10 +3,8 @@
 #include <string.h>
 #include "DataTypes.h"
 
-const double eps = 0.0001;// for comparing float-pointing numbers
+const double maxIteration = 10;// acceptable number of iterations without changes 
 
-double squaredEuclideanDistance(double* x, double* y, int dim);
-double dotProduct(double* x, double* y);
 char** resolveClassesList(struct CsvData data);
 void allocateResultMemory(struct CsvData dataSet, ClassifiedData* result);
 ClassifiedData assingClasses(struct CsvData dataSet, Classificator* classificators, char** classesList);
@@ -14,8 +12,22 @@ char * FindClass(double* vector, Classificator* classificators, char** classesLi
 Classificator* BuildClassificators(struct CsvData trainSet, SVMParams  params, char** classesList);
 Classificator BuildBinaryClassificator(double** vectors, int* belongs, SVMParams  params);
 
+double E(double* alfa, double b, double** x, int* y, SVMParams  params, int j);
+double f(double* alfa, double b, double** x, int* y, SVMParams  params, int j);
+void CalculateBoundaries(double* alfa, int* y, int i, int j, double C, double* L, double* H);
+double CalculateEta(double* xi, double* xj, SVMParams params);
+double alfaiNewValue(double alfajNew, double* alfa, int* y, int i, int j);
+double alfajNewValue(double alfajOld, double yj, double Ei, double Ej, double eta, double L, double H);
+double bNewValue(double bOld, double alfaiNew, double alfajNew, double Ei, double Ej, double** x, int* y, double* alfa, int i, int j, SVMParams params);
+
+double K(double* x, double* y, SVMParams params);
+double squaredEuclideanDistance(double* x, double* y, int dim);
+double dotProduct(double* x, double* y);
+int RandomIndex(int i, int n);
+
 ClassificationResult classify(struct CsvData trainSet, struct CsvData testSet, SVMParams params)
 {
+	srand(time(NULL));
 	char** classesList = resolveClassesList(trainSet);
 	Classificator* classificators = BuildClassificators(trainSet, params, classesList);
 	ClassificationResult result;
@@ -92,34 +104,166 @@ Classificator* BuildClassificators(struct CsvData trainSet, SVMParams  params, c
 
 	for (int i = 0; i < classesCount; i++)
 	{
-		double** vectors = (double**)malloc(sizeof(double*) * trainSet.rows);
-		int* belongs = (int*)malloc(sizeof(int) * trainSet.rows);
+		double** x = (double**)malloc(sizeof(double*) * trainSet.rows);
+		int* y = (int*)malloc(sizeof(int) * trainSet.rows);
 		for (int j = 0; j < classesCount; j++)
 		{
-			vectors[j] = (double*)malloc(sizeof(double) * trainSet.columns);
+			x[j] = (double*)malloc(sizeof(double) * trainSet.columns);
 			for (int k = 0; k < classesCount; k++)
-				vectors[j][k] = trainSet.data[j][k];
+				x[j][k] = trainSet.data[j][k];
 
 			if (strcmp(trainSet.classes[j], classesList[i]) == 0)
-				belongs[j] = 1;
+				y[j] = 1;
 			else
-				belongs[j] = -1;
+				y[j] = -1;
 		}
 
-		classificators[i] = BuildBinaryClassificator(vectors, belongs, params);
+		classificators[i] = BuildBinaryClassificator(x, y, params);
 	}
 	return classificators;
 }
 
-Classificator BuildBinaryClassificator(double** vectors, int* belongs, SVMParams  params)
+Classificator BuildBinaryClassificator(double** x, int* y, SVMParams  params)
 {
+	size_t vectorsCount = sizeof(x) / sizeof(double);
 
+	double* alfa = (double*)malloc(sizeof(double) * vectorsCount);
+	double b = 0.0;
+	int unchangedIterations = 0;
+	while (unchangedIterations < maxIteration)
+	{
+		int updated = 0;
+		for (int i = 0; i < vectorsCount; i++)
+		{
+			double Ei = E(alfa, b, x, y, params, i);
+			double yE = y[i] * Ei;
+			if ((yE < -params.tol && alfa[i] < params.c) || (yE > params.tol && alfa[i] > 0))
+			{
+				int j = RandomIndex(i, vectorsCount);
+				double Ej = E(alfa, b, x, y, params, j);
+				double L, H;
+				CalculateBoundaries(alfa, y, i, j, params.c, &L, &H);
+				if (abs(L - H) < params.tol)// if boundaries too close , go to next
+					continue;
+				double eta = CalculateEta(x[i], x[j], params);
+				if (eta >= 0)
+					continue;
+				double alfajNew = alfajNewValue(alfa[j], y[j], Ei, Ej, eta, L, H);
 
+				if (abs(alfajNew - alfa[j]) < params.tol)
+					continue;
+				double alfaiNew = alfaiNewValue(alfajNew, alfa, y, i, j);
+				double bNew = bNewValue(b, alfaiNew, alfajNew, Ei, Ej, x, y, alfa, i, j, params);
+				//update factor values
+				alfa[i] = alfaiNew;
+				alfa[j] = alfajNew;
+				b = bNew;
+
+				updated++;
+			}
+		}
+
+		if (updated > 0)
+			unchangedIterations = 0;
+		else
+			unchangedIterations = 0;
+	}
 
 	//TODO
 	Classificator c;
 	c.b = 0;
 	return c;
+}
+double bNewValue(double bOld, double alfaiNew, double alfajNew, double Ei, double Ej, double** x, int* y, double* alfa, int i, int j, SVMParams params)
+{
+	double b;
+	double b1 = bOld - Ei - y[i] * (alfaiNew - alfa[i])*K(x[i], x[i], params) - y[j] * (alfajNew - alfa[j])*K(x[i], x[j], params);
+	double b2 = bOld - Ej - y[i] * (alfaiNew - alfa[i])*K(x[i], x[j], params) - y[j] * (alfajNew - alfa[j])*K(x[j], x[j], params);
+	if (0 < alfaiNew && alfaiNew < params.c && 0 < alfajNew && alfajNew < params.c)
+		b = (b1 + b2) / 2;
+	else if (0 < alfaiNew && alfaiNew < params.c)
+		b = b1;
+	else if (0 < alfajNew && alfajNew < params.c)
+		b = b2;
+	return b;
+}
+double alfajNewValue(double alfajOld, double yj, double Ei, double Ej, double eta, double L, double H)
+{
+	double alfaj = alfajOld - (yj *(Ei - Ej) / eta);
+	//clipping
+	if (alfaj > H)
+		alfaj = H;
+	else if (alfaj < L)
+		alfaj = L;
+	return alfaj;
+}
+
+double alfaiNewValue(double alfajNew, double* alfa, int* y, int i, int j)
+{
+	double alfai = alfa[i] + y[i] * y[j] * (alfajNew - alfa[j]);
+	return alfai;
+}
+
+double CalculateEta(double* xi, double* xj, SVMParams params)
+{
+	double eta = 2 * K(xi, xj, params) - K(xi, xi, params) - K(xj, xj, params);
+	return eta;
+}
+
+void CalculateBoundaries(double* alfa, int* y, int i, int j, double C, double* L, double* H)
+{
+	if (y[i] == y[j])
+	{
+		double alfaDiff = alfa[j] - alfa[i];
+		if (alfaDiff > 0)
+			*L = alfaDiff;
+		else
+			*L = 0;
+
+		if (C + alfaDiff < C)
+			*H = C + alfaDiff;
+		else
+			*H = C;
+	}
+	else
+	{
+		double alfaSum = alfa[j] + alfa[i];
+		if (alfaSum - C > 0)
+			*L = alfaSum - C;
+		else
+			*L = 0;
+
+		if (alfaSum < C)
+			*H = alfaSum;
+		else
+			*H = C;
+	}
+}
+
+int RandomIndex(int i, int n)
+{
+	int ind = rand() % n;
+	if (ind == i)
+		ind = (ind + 1) % n;
+	return ind;
+}
+
+double E(double* alfa, double b, double** x, int* y, SVMParams  params, int j)
+{
+	double fx = f(alfa, b, x, y, params, j);
+	double result = fx - y[j];
+	return result;
+}
+
+double f(double* alfa, double b, double** x, int* y, SVMParams  params, int j)
+{
+	size_t vectorsCount = sizeof(x) / sizeof(double);
+	double result = 0.0;
+	for (int i = 0; i < vectorsCount; i++)
+	{
+		double summand = alfa[i] * y[i] * K(x[i], x[j], params) + b;
+	}
+	return result;
 }
 
 //get distinct classes values
@@ -154,8 +298,9 @@ char** resolveClassesList(struct CsvData data)
 }
 
 // kernel function
-double K(double* x, double* y, int dim, SVMParams params)
+double K(double* x, double* y, SVMParams params)
 {
+	size_t dim = sizeof(x) / sizeof(double);
 	double w = dotProduct(x, y);
 	double res;
 	switch (params.kernel)
