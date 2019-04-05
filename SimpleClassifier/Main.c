@@ -40,7 +40,7 @@ struct CsvData allocCsvData(int rows, int columns)
 	csvData.columns = columns;
 	csvData.rows = rows;
 
-	csvData.headers = (char**)malloc(sizeof(char*) * (columns+1));
+	csvData.headers = (char**)malloc(sizeof(char*) * (columns + 1));
 	for (i = 0; i < (columns + 1); i++)
 	{
 		csvData.headers[i] = (char *)malloc(sizeof(char) * 1024);
@@ -60,12 +60,12 @@ struct CsvData allocCsvData(int rows, int columns)
 	return csvData;
 }
 
-int readFile(char* fileName, struct CsvData* csvData) 
+int readFile(char* fileName, struct CsvData* csvData)
 {
 	FILE* stream;
-	errno_t err = fopen_s(&stream , fileName, "r");
+	errno_t err = fopen_s(&stream, fileName, "r");
 
-	if (NULL == stream) 
+	if (NULL == stream)
 	{
 		printf("Podano zly plik");
 		return 0;
@@ -75,7 +75,7 @@ int readFile(char* fileName, struct CsvData* csvData)
 	int columns = 1;
 	char c;
 	while ((c = fgetc(stream)) != EOF) {
-		
+
 		if (c == ',' && 0 == rows) {
 			columns++;
 		}
@@ -90,8 +90,8 @@ int readFile(char* fileName, struct CsvData* csvData)
 	*csvData = allocCsvData(rows - 1, columns - 1);
 	char line[1024];
 	int crow = 0;
-	int i,j,k;
-	
+	int i, j, k;
+
 	while (fgets(line, 1024, stream))
 	{
 		if (0 == crow) // headery
@@ -99,7 +99,7 @@ int readFile(char* fileName, struct CsvData* csvData)
 			i = 0;
 			k = 0;
 			j = 0;
-			while (line[k] != '\n') 
+			while (line[k] != '\n')
 			{
 				if (line[k] == ',') {
 					csvData->headers[i][j] = '\0';
@@ -126,15 +126,15 @@ int readFile(char* fileName, struct CsvData* csvData)
 
 			while (line[k] != '\n')
 			{
-				if (line[k] == ',') 
+				if (line[k] == ',')
 				{
-					if (1 == cclass) 
+					if (1 == cclass)
 					{
-						csvData->classes[crow-1][j] = '\0';
+						csvData->classes[crow - 1][j] = '\0';
 						cclass = 0;
 						j = 0;
 					}
-					else 
+					else
 					{
 						preValue[j] = '\0';
 						j = 0;
@@ -147,11 +147,11 @@ int readFile(char* fileName, struct CsvData* csvData)
 					continue;
 				}
 
-				if (1 == cclass) 
+				if (1 == cclass)
 				{
-					csvData->classes[crow-1][j] = line[k];
+					csvData->classes[crow - 1][j] = line[k];
 				}
-				else 
+				else
 				{
 					preValue[j] = line[k];
 				}
@@ -166,7 +166,7 @@ int readFile(char* fileName, struct CsvData* csvData)
 		crow++;
 	}
 
-	if (NULL != stream) 
+	if (NULL != stream)
 	{
 		fclose(stream);
 	}
@@ -174,21 +174,21 @@ int readFile(char* fileName, struct CsvData* csvData)
 	return 1;
 }
 
-int askForFilesNumber() 
+int askForFilesNumber()
 {
 	int keepAsking = 1;
 	int numOfFiles;
 	char answer[10];
-	while (keepAsking == 1) 
+	while (keepAsking == 1)
 	{
 		printf("Podaj ilosc plikow do wczytania\n");
 		scanf_s("%s", answer, sizeof(answer));
 		numOfFiles = atoi(answer);
-		if (numOfFiles == 1 || numOfFiles == 2) 
+		if (numOfFiles == 1 || numOfFiles == 2)
 		{
 			keepAsking = 0;
 		}
-		else 
+		else
 		{
 			printf("Podano zla ilosc plikow\n");
 		}
@@ -201,11 +201,11 @@ void readOneFile(struct CsvData* trainData, struct CsvData* testData)
 	char fileName[1024];
 	int keepAsking = 1;
 	struct CsvData oneFileData;
-	while (keepAsking == 1) 
+	while (keepAsking == 1)
 	{
 		printf("Podaj nazwe pliku\n");
 		scanf_s("%s", fileName, sizeof(fileName));
-		if (readFile(fileName, &oneFileData) == 1) 
+		if (readFile(fileName, &oneFileData) == 1)
 		{
 			keepAsking = 0;
 		}
@@ -217,7 +217,7 @@ void readOneFile(struct CsvData* trainData, struct CsvData* testData)
 	char proportion[10];
 	keepAsking = 1;
 	int prop;
-	while (keepAsking == 1) 
+	while (keepAsking == 1)
 	{
 		printf("\n\nPodaj proporcje podzialu na dane trenujace i testowe\n");
 		scanf_s("%s", proportion, sizeof(proportion));
@@ -231,8 +231,8 @@ void readOneFile(struct CsvData* trainData, struct CsvData* testData)
 			printf("Podano zle proporcje\n");
 		}
 	}
-	
-	int trainRows = ( oneFileData.rows * prop ) / 100;
+
+	int trainRows = (oneFileData.rows * prop) / 100;
 	int testRows = oneFileData.rows - trainRows;
 
 	*trainData = allocCsvData(trainRows, oneFileData.columns);
@@ -325,7 +325,7 @@ void normalizeData(struct CsvData* data)
 {
 	double min = DBL_MAX;
 	double max = DBL_MIN;
-	int i,j;
+	int i, j;
 	double value;
 
 	for (i = 0; i < data->rows; i++)
@@ -356,7 +356,7 @@ int askForNormalization()
 	{
 		printf("Czy chcesz znormalizowac dane?\n");
 		scanf_s("%s", answer, sizeof(answer));
-		
+
 		if (strcmp(answer, "tak") == 0)
 		{
 			normalize = 1;
@@ -463,18 +463,32 @@ void crossValidate(struct CsvData trainData, int cvk)
 		endIndex = newEndIndex > trainData.rows ? trainData.rows : newEndIndex;
 		deleteRowsInSet(trainData, startIndex, endIndex, &tempTrainSet);
 
-		printf("\n\n %d z %d zbiorow testowych z cross walidacji : \n\n", i+1, cvk);
+		printf("\n\n %d z %d zbiorow testowych z cross walidacji : \n\n", i + 1, cvk);
 		printData(tempTrainSet);
 
 		// run the SVM on the created set
 	}
 }
 
+double classificationAccuracy(ClassifiedData set)
+{
+	int correctClassified = 0;
+	for (int i = 0; i < set.rows; i++)
+	{
+		if (strcmp(set.classes[i], set.assignedClasses[i]) == 0)
+		{
+			correctClassified += 1;
+		}
+	}
+	double	ratio = (double)correctClassified / (double)set.rows;
+	return ratio;
+}
+
 int main()
 {
 	struct CsvData trainData;
 	struct CsvData testData;
-	if (askForFilesNumber() == 1) 
+	if (askForFilesNumber() == 1)
 	{
 		readOneFile(&trainData, &testData);
 	}
@@ -487,8 +501,22 @@ int main()
 	printData(trainData);
 	printf("\n\nWczytano podany zbior testowy : \n\n");
 	printData(testData);
+	SVMParams params = DefaultParams(trainData.columns);
+	params.c = 5;
+	params.c0 = 0;
+	params.kernel = rbf;
+	params.deg = 2;
+	params.gamma = 10;
+	params.tol = 0.00001;
 
-	if (askForNormalization() == 1)
+	ClassificationResult res = classify(trainData, testData, params);
+
+	double trainRatio = classificationAccuracy(res.trainSet);
+	double testRatio = classificationAccuracy(res.testSet);
+	printf("Jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatio);
+	printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatio);
+
+	/*if (askForNormalization() == 1)
 	{
 		normalizeData(&trainData);
 		normalizeData(&testData);
@@ -503,7 +531,9 @@ int main()
 
 	char fileName[10];
 	printf("Podaj proporcje podzialu danych\n");
-	scanf_s("%s", fileName, sizeof(fileName));
+	scanf_s("%s", fileName, sizeof(fileName));*/
+	system("pause");
 	return 0;
+	//return 0;
 }
 

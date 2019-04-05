@@ -22,8 +22,11 @@ typedef struct {
 
 typedef enum {
 	lin,
+	rbf,
 	poly,
-	rbf
+	sinc,
+	multiquadratic,
+	cauchy,
 }Kernel;
 
 typedef struct {
@@ -36,7 +39,11 @@ typedef struct {
 }SVMParams;
 
 typedef struct {
-	double* w;//penalty parameter
+	double* alfa;
+	int* y;
 	double b;
-}Classificator;
+	double** x;
+	int vectorsCount;// równe liczbie CsvData.rows;
+	int dim;// równe liczbie CsvData.columns;
+}BinaryClassificator;
 
