@@ -60,6 +60,31 @@ struct CsvData allocCsvData(int rows, int columns)
 	return csvData;
 }
 
+void freeCsvData(struct CsvData csvData)
+{
+	int i;
+	int columns = csvData.columns;
+	int rows = csvData.rows;
+
+	for (i = 0; i < (columns + 1); i++)
+	{
+		free(csvData.headers[i]);
+	}
+	free(csvData.headers);
+
+	for (i = 0; i < rows; i++)
+	{
+		free(csvData.classes[i]);
+	}
+	free(csvData.classes);
+
+	for (i = 0; i < rows; i++)
+	{
+		free(csvData.data[i]);
+	}
+	free(csvData.data);
+}
+
 int readFile(char* fileName, struct CsvData* csvData)
 {
 	FILE* stream;
@@ -219,7 +244,7 @@ void readOneFile(struct CsvData* trainData, struct CsvData* testData)
 	int prop;
 	while (keepAsking == 1)
 	{
-		printf("\n\nPodaj proporcje podzialu na dane trenujace i testowe\n");
+		printf("\n\nPodaj proporcje podzialu na dane trenujace i testowe\n ");
 		scanf_s("%s", proportion, sizeof(proportion));
 		prop = atoi(proportion);
 		if (prop > 0 && prop < 100)
