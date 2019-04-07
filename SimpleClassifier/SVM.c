@@ -4,13 +4,13 @@
 #include <float.h>
 #include "DataTypes.h"
 
-ClassificationResult classify(struct CsvData trainSet, struct CsvData testSet, SVMParams params);
-ClassifiedData assingClasses(struct CsvData dataSet, char** classesList, int classesCount, BinaryClassificator* classificators, SVMParams params);
+ClassificationResult classify(CsvData trainSet, CsvData testSet, SVMParams params);
+ClassifiedData assingClasses(CsvData dataSet, char** classesList, int classesCount, BinaryClassificator* classificators, SVMParams params);
 char* FindClass(BinaryClassificator* classificators, char** classesList, int classesCount, double* vector, SVMParams params);
-void allocateResultMemory(struct CsvData dataSet, ClassifiedData* result);
+void allocateResultMemory(CsvData dataSet, ClassifiedData* result);
 void freeMemory(BinaryClassificator* classificators, char** classesList, int classesCount);
-char** resolveClassesList(struct CsvData data, int* classesCount);
-BinaryClassificator* BuildClassificators(struct CsvData trainSet, char** classesList, int classesCount, SVMParams  params);
+char** resolveClassesList(CsvData data, int* classesCount);
+BinaryClassificator* BuildClassificators(CsvData trainSet, char** classesList, int classesCount, SVMParams  params);
 BinaryClassificator BuildBinaryClassificator(double** x, int* y, int vectorsCount, int dim, SVMParams  params);
 double alfajNewValue(double alfajOld, double yj, double Ei, double Ej, double eta, double L, double H);
 double alfaiNewValue(BinaryClassificator classificator, double alfajNew, int i, int j);
@@ -28,7 +28,7 @@ SVMParams DefaultParams(int dim);
 
 const double maxIteration = 20;// acceptable number of iterations without changes 
 
-ClassificationResult classify(struct CsvData trainSet, struct CsvData testSet, SVMParams params)
+ClassificationResult classify(CsvData trainSet, CsvData testSet, SVMParams params)
 {
 	int classesCount;
 	char** classesList = resolveClassesList(trainSet, &classesCount);
@@ -40,7 +40,7 @@ ClassificationResult classify(struct CsvData trainSet, struct CsvData testSet, S
 	return result;
 }
 
-ClassifiedData assingClasses(struct CsvData dataSet, char** classesList, int classesCount, BinaryClassificator* classificators, SVMParams params)
+ClassifiedData assingClasses(CsvData dataSet, char** classesList, int classesCount, BinaryClassificator* classificators, SVMParams params)
 {
 	ClassifiedData result;
 	allocateResultMemory(dataSet, &result);
@@ -71,7 +71,7 @@ char* FindClass(BinaryClassificator* classificators, char** classesList, int cla
 	return selectedClass;
 }
 
-void allocateResultMemory(struct CsvData dataSet, ClassifiedData* result)
+void allocateResultMemory(CsvData dataSet, ClassifiedData* result)
 {
 	result->columns = dataSet.columns;
 	result->rows = dataSet.rows;
@@ -119,7 +119,7 @@ void freeMemory(BinaryClassificator* classificators, char** classesList, int cla
 }
 
 //get distinct classes values
-char** resolveClassesList(struct CsvData data, int* classesCount)
+char** resolveClassesList(CsvData data, int* classesCount)
 {
 	*classesCount = 0;
 	char** classesList = NULL;
@@ -150,7 +150,7 @@ char** resolveClassesList(struct CsvData data, int* classesCount)
 	return classesList;
 }
 
-BinaryClassificator* BuildClassificators(struct CsvData trainSet, char** classesList, int classesCount, SVMParams  params)
+BinaryClassificator* BuildClassificators(CsvData trainSet, char** classesList, int classesCount, SVMParams  params)
 {
 	srand(time(NULL));
 	BinaryClassificator* classificators = (BinaryClassificator*)malloc(sizeof(BinaryClassificator) * classesCount);

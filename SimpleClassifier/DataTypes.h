@@ -1,10 +1,10 @@
-struct CsvData {
+typedef struct {
 	int columns;
 	int rows;
 	char** headers;
 	char** classes;
 	double** data;
-};
+}CsvData;
 
 typedef struct {
 	int columns;

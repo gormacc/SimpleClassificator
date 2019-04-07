@@ -6,7 +6,7 @@
 
 
 
-void printData(struct CsvData data)
+void printData( CsvData data)
 {
 	int i, j;
 	printf("Headers:\n");
@@ -32,9 +32,9 @@ void printData(struct CsvData data)
 	}
 }
 
-struct CsvData allocCsvData(int rows, int columns)
+ CsvData allocCsvData(int rows, int columns)
 {
-	struct CsvData csvData;
+	 CsvData csvData;
 	int i;
 
 	csvData.columns = columns;
@@ -60,7 +60,7 @@ struct CsvData allocCsvData(int rows, int columns)
 	return csvData;
 }
 
-void freeCsvData(struct CsvData csvData)
+void freeCsvData( CsvData csvData)
 {
 	int i;
 	int columns = csvData.columns;
@@ -85,7 +85,7 @@ void freeCsvData(struct CsvData csvData)
 	free(csvData.data);
 }
 
-int readFile(char* fileName, struct CsvData* csvData)
+int readFile(char* fileName,  CsvData* csvData)
 {
 	FILE* stream;
 	errno_t err = fopen_s(&stream, fileName, "r");
@@ -221,11 +221,11 @@ int askForFilesNumber()
 	return numOfFiles;
 }
 
-void readOneFile(struct CsvData* trainData, struct CsvData* testData)
+void readOneFile( CsvData* trainData,  CsvData* testData)
 {
 	char fileName[1024];
 	int keepAsking = 1;
-	struct CsvData oneFileData;
+	 CsvData oneFileData;
 	while (keepAsking == 1)
 	{
 		printf("Podaj nazwe pliku\n");
@@ -319,7 +319,7 @@ void readOneFile(struct CsvData* trainData, struct CsvData* testData)
 	}
 }
 
-void readTwoFiles(struct CsvData* trainData, struct CsvData* testData)
+void readTwoFiles( CsvData* trainData,  CsvData* testData)
 {
 	char fileName[1024];
 	int keepAsking = 1;
@@ -346,20 +346,26 @@ void readTwoFiles(struct CsvData* trainData, struct CsvData* testData)
 
 }
 
-void normalizeData(struct CsvData* data)
+void normalizeData( CsvData* data)
 {
-	double min = DBL_MAX;
-	double max = DBL_MIN;
+	double* min = (double *)malloc(sizeof(double) * (data->columns));
+	double* max = (double *)malloc(sizeof(double) * (data->columns));
 	int i, j;
 	double value;
+
+	for (j = 0; j < data->columns; j++)
+	{
+		max[j] = DBL_MIN;
+		min[j] = DBL_MAX;
+	}
 
 	for (i = 0; i < data->rows; i++)
 	{
 		for (j = 0; j < data->columns; j++)
 		{
 			value = data->data[i][j];
-			max = value >= max ? value : max;
-			min = value <= min ? value : min;
+			max[j] = value >= max[j] ? value : max[j];
+			min[j] = value <= min[j] ? value : min[j];
 		}
 	}
 
@@ -367,9 +373,12 @@ void normalizeData(struct CsvData* data)
 	{
 		for (j = 0; j < data->columns; j++)
 		{
-			data->data[i][j] = (data->data[i][j] - min) / (max - min);
+			data->data[i][j] = (data->data[i][j] - min[j]) / (max[j] - min[j]);
 		}
 	}
+
+	free(min);
+	free(max);
 }
 
 int askForNormalization()
@@ -428,7 +437,7 @@ int askForCrossValidation(int rows)
 	return cv;
 }
 
-struct CsvData deleteRowsInSet(struct CsvData trainData, int startIndex, int endIndex, struct CsvData* newSet)
+ CsvData deleteRowsInSet( CsvData trainData, int startIndex, int endIndex,  CsvData* newSet)
 {
 	int rowsCount = trainData.rows - (endIndex - startIndex);
 	*newSet = allocCsvData(rowsCount, trainData.columns);
@@ -469,7 +478,7 @@ struct CsvData deleteRowsInSet(struct CsvData trainData, int startIndex, int end
 	}
 }
 
-void crossValidate(struct CsvData trainData, int cvk)
+void crossValidate( CsvData trainData, int cvk)
 {
 	if (cvk == 1)
 	{
@@ -479,7 +488,7 @@ void crossValidate(struct CsvData trainData, int cvk)
 	int trainSetAmount = trainData.rows / cvk;
 	int startIndex, endIndex, newEndIndex;
 	int i;
-	struct CsvData tempTrainSet;
+	 CsvData tempTrainSet;
 
 	startIndex = 0;
 	for (int i = 0; i < cvk; i++)
@@ -511,8 +520,8 @@ double classificationAccuracy(ClassifiedData set)
 
 int main()
 {
-	struct CsvData trainData;
-	struct CsvData testData;
+	 CsvData trainData;
+	 CsvData testData;
 	if (askForFilesNumber() == 1)
 	{
 		readOneFile(&trainData, &testData);
@@ -541,7 +550,7 @@ int main()
 	printf("Jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatio);
 	printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatio);
 
-	/*if (askForNormalization() == 1)
+	if (askForNormalization() == 1)
 	{
 		normalizeData(&trainData);
 		normalizeData(&testData);
@@ -551,7 +560,7 @@ int main()
 		printf("\n\n Zbior testowy po normalizacji : \n\n");
 		printData(testData);
 	}
-
+	/*
 	crossValidate(trainData, askForCrossValidation(trainData.rows));
 
 	char fileName[10];
