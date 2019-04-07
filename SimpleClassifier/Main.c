@@ -85,6 +85,34 @@ void freeCsvData( CsvData csvData)
 	free(csvData.data);
 }
 
+void shuffleCsvData(CsvData* data)
+{
+	int loopCount = data->rows;
+	int columns = data->columns;
+	int i, j, first, second;
+	srand(time(NULL));
+
+	char tempClass[1024];
+	double tempValue;
+
+	for (i = 0; i < 2* loopCount; i++)
+	{
+		first = rand() % loopCount;
+		second = rand() % loopCount;
+
+		for (j = 0; j < columns; j++)
+		{
+			tempValue = data->data[first][j];
+			data->data[first][j] = data->data[second][j];
+			data->data[second][j] = tempValue;
+		}
+
+		strcpy(tempClass, data->classes[first]);
+		strcpy(data->classes[first], data->classes[second]);
+		strcpy(data->classes[second], tempClass);
+	}
+}
+
 int readFile(char* fileName,  CsvData* csvData)
 {
 	FILE* stream;
@@ -533,6 +561,12 @@ int main()
 
 	printf("\n\nWczytano podany zbior trenujacy : \n\n");
 	printData(trainData);
+
+	printf("\n\n\n\n");
+	shuffleCsvData(&trainData);
+	printData(trainData);
+
+	/*
 	printf("\n\nWczytano podany zbior testowy : \n\n");
 	printData(testData);
 	SVMParams params = DefaultParams(trainData.columns);
