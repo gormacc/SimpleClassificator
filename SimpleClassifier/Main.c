@@ -253,7 +253,7 @@ void readOneFile( CsvData* trainData,  CsvData* testData)
 {
 	char fileName[1024];
 	int keepAsking = 1;
-	 CsvData oneFileData;
+	CsvData oneFileData;
 	while (keepAsking == 1)
 	{
 		printf("Podaj nazwe pliku\n");
@@ -264,8 +264,7 @@ void readOneFile( CsvData* trainData,  CsvData* testData)
 		}
 	}
 
-	//printf("Wczytano poni¿sze dane\n\n");
-	//printData(oneFileData);
+	shuffleCsvData(&oneFileData);
 
 	char proportion[10];
 	keepAsking = 1;
@@ -345,6 +344,8 @@ void readOneFile( CsvData* trainData,  CsvData* testData)
 		}
 		k++;
 	}
+
+	freeCsvData(oneFileData);
 }
 
 void readTwoFiles( CsvData* trainData,  CsvData* testData)
@@ -546,6 +547,84 @@ double classificationAccuracy(ClassifiedData set)
 	return ratio;
 }
 
+void createConfusionMatrix(ClassifiedData test)
+{
+	if (test.rows == 0) return;
+
+	int i, j, any, count;
+	count = 1;
+	char** classes = (char**)malloc(sizeof(char*));
+	classes[count-1] = (char *)malloc(sizeof(char) * 1024);
+	strcpy(classes[0], test.classes[0]);
+	char** tmpClasses;
+	int** cmatrix;
+
+	for (i = 1; i < test.rows; i++)
+	{
+		any = 0;
+		for (j = 0; j < count; j++)
+		{
+			if (strcmp(classes[j], test.classes[i]) == 0) any = 1;
+		}
+
+		if (any == 0)
+		{
+			count = count + 1;
+			tmpClasses = (char**)realloc(classes, count * sizeof(char*));
+			if (tmpClasses)
+			{
+				classes = tmpClasses;
+				classes[count - 1] = (char *)malloc(sizeof(char) * 1024);
+				strcpy(classes[count - 1], test.classes[i]);
+			}
+		}
+	}
+
+	/*printf("Klasy\n\n\n\n");
+
+	for (i = 0; i < count; i++)
+	{
+		printf("%s\n", classes[i]);
+	}*/
+
+	cmatrix = (int**)malloc(sizeof(int*) * (count));
+	for (i = 0; i < count; i++)
+	{
+		cmatrix[i] = (int *)malloc(sizeof(int) * (count));
+	}
+
+	int actual, predicted;
+
+	for (i = 0; i < count; i++)
+	{
+		for (j = 0; j < count; j++)
+		{
+			cmatrix[i][j] = 0;
+		}
+	}
+
+	for (i = 0; i < test.rows; i++)
+	{
+		for (j = 0; j < count; j++)
+		{
+			if (strcmp(test.classes[i], classes[j]) == 0) actual = j;
+			if (strcmp(test.assignedClasses[i], classes[j]) == 0) predicted = j;
+		}
+		cmatrix[predicted][actual] += 1;
+	}
+
+	/*printf("Matrix\n\n\n\n");
+
+	for (i = 0; i < count; i++)
+	{
+		for (j = 0; j < count; j++)
+		{
+			printf(" %d ", cmatrix[i][j]);
+		}
+		printf("\n");
+	}*/
+}
+
 int main()
 {
 	 CsvData trainData;
@@ -564,9 +643,9 @@ int main()
 
 	printf("\n\n\n\n");
 	shuffleCsvData(&trainData);
-	printData(trainData);
+	shuffleCsvData(&testData);
 
-	/*
+	
 	printf("\n\nWczytano podany zbior testowy : \n\n");
 	printData(testData);
 	SVMParams params = DefaultParams(trainData.columns);
@@ -578,12 +657,16 @@ int main()
 	params.tol = 0.00001;
 
 	ClassificationResult res = classify(trainData, testData, params);
+	createConfusionMatrix(res.testSet);
 
 	double trainRatio = classificationAccuracy(res.trainSet);
 	double testRatio = classificationAccuracy(res.testSet);
 	printf("Jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatio);
 	printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatio);
 
+	
+
+	/*
 	if (askForNormalization() == 1)
 	{
 		normalizeData(&trainData);
@@ -600,6 +683,10 @@ int main()
 	char fileName[10];
 	printf("Podaj proporcje podzialu danych\n");
 	scanf_s("%s", fileName, sizeof(fileName));*/
+
+	freeCsvData(testData);
+	freeCsvData(trainData);
+
 	system("pause");
 	return 0;
 	//return 0;
