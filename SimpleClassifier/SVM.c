@@ -24,7 +24,7 @@ double K(double* x, double* y, int dim, SVMParams params);
 double dotProduct(double* x, double* y, int dim);
 double norm1(double* x, double* y, int dim);
 double norm2(double* x, double* y, int dim);
-SVMParams DefaultParams(int dim);
+SVMParams DefaultParams();
 
 const double maxIteration = 20;// acceptable number of iterations without changes 
 
@@ -399,10 +399,10 @@ double norm2(double* x, double* y, int dim)
 	return res;
 }
 //default svm params, used when other values not specified
-SVMParams DefaultParams(int dim) {
+SVMParams DefaultParams() {
 	SVMParams params;
 	params.c = 1.0;
-	params.gamma = 1.0 / (double)dim;
+	params.gamma = 1.0;
 	params.kernel = rbf;
 	params.c0 = 0.0;
 	params.tol = 0.001;

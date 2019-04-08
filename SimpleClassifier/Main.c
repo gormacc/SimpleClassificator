@@ -4,7 +4,87 @@
 #include <float.h>
 #include "SVM.h"
 
+#define STRINGBUFF 64
 
+ProgramParams readProgramParams()
+{
+	ProgramParams params;
+	char line[STRINGBUFF*2], param[STRINGBUFF], value[STRINGBUFF];
+	FILE *fp = fopen("params.txt", "r");
+
+	if (NULL == fp)
+	{
+		params.error = 1;
+		return params;
+	}
+	else 
+	{
+		params.error = 0;
+	}
+
+	params.svmParams = DefaultParams();
+
+	while (fgets(line, STRINGBUFF*2-1, fp)) 
+	{
+		sscanf(line, "%s : %s", param, value);
+		
+		if (strcmp(param, "numOfFiles") == 0)
+		{
+			params.fileNumber = atoi(value);
+		}
+		if (strcmp(param, "firstFile") == 0)
+		{
+			strcpy(params.firstFile, value);
+		}
+		if (strcmp(param, "secondFile") == 0)
+		{
+			strcpy(params.firstFile, value);
+		}
+		if (strcmp(param, "proportion") == 0)
+		{
+			params.proportion = atoi(value);
+		}
+		if (strcmp(param, "normalize") == 0)
+		{
+			params.normalize = atoi(value);
+		}
+		if (strcmp(param, "crossValid") == 0)
+		{
+			strcpy(params.crossValid, value);
+		}
+		if (strcmp(param, "repet") == 0)
+		{
+			params.repet = atoi(value);
+		}
+		if (strcmp(param, "c") == 0)
+		{
+			params.svmParams.c = atof(value);
+		}
+		if (strcmp(param, "kernel") == 0)
+		{
+			params.svmParams.kernel = atoi(value);
+		}
+		if (strcmp(param, "tol") == 0)
+		{
+			params.svmParams.tol = atof(value);
+		}
+		if (strcmp(param, "gamma") == 0)
+		{
+			params.svmParams.gamma = atof(value);
+		}
+		if (strcmp(param, "c0") == 0)
+		{
+			params.svmParams.c0 = atof(value);
+		}
+		if (strcmp(param, "deg") == 0)
+		{
+			params.svmParams.deg = atoi(value);
+		}
+	}
+
+	fclose(fp);
+	return params;
+}
 
 void printData( CsvData data)
 {
@@ -43,13 +123,13 @@ void printData( CsvData data)
 	csvData.headers = (char**)malloc(sizeof(char*) * (columns + 1));
 	for (i = 0; i < (columns + 1); i++)
 	{
-		csvData.headers[i] = (char *)malloc(sizeof(char) * 1024);
+		csvData.headers[i] = (char *)malloc(sizeof(char) * STRINGBUFF);
 	}
 
 	csvData.classes = (char**)malloc(sizeof(char*) * (rows));
 	for (i = 0; i < rows; i++)
 	{
-		csvData.classes[i] = (char *)malloc(sizeof(char) * 1024);
+		csvData.classes[i] = (char *)malloc(sizeof(char) * STRINGBUFF);
 	}
 
 	csvData.data = (double**)malloc(sizeof(double*) * (rows));
@@ -92,7 +172,7 @@ void shuffleCsvData(CsvData* data)
 	int i, j, first, second;
 	srand(time(NULL));
 
-	char tempClass[1024];
+	char tempClass[STRINGBUFF];
 	double tempValue;
 
 	for (i = 0; i < 2* loopCount; i++)
@@ -141,11 +221,11 @@ int readFile(char* fileName,  CsvData* csvData)
 	fseek(stream, 0, SEEK_SET);
 
 	*csvData = allocCsvData(rows - 1, columns - 1);
-	char line[1024];
+	char line[STRINGBUFF];
 	int crow = 0;
 	int i, j, k;
 
-	while (fgets(line, 1024, stream))
+	while (fgets(line, STRINGBUFF, stream))
 	{
 		if (0 == crow) // headery
 		{
@@ -249,40 +329,12 @@ int askForFilesNumber()
 	return numOfFiles;
 }
 
-void readOneFile( CsvData* trainData,  CsvData* testData)
+void readOneFile(CsvData* trainData,  CsvData* testData, char* fileName, int prop)
 {
-	char fileName[1024];
-	int keepAsking = 1;
 	CsvData oneFileData;
-	while (keepAsking == 1)
-	{
-		printf("Podaj nazwe pliku\n");
-		scanf_s("%s", fileName, sizeof(fileName));
-		if (readFile(fileName, &oneFileData) == 1)
-		{
-			keepAsking = 0;
-		}
-	}
+	if (readFile(fileName, &oneFileData) == 1)
 
 	shuffleCsvData(&oneFileData);
-
-	char proportion[10];
-	keepAsking = 1;
-	int prop;
-	while (keepAsking == 1)
-	{
-		printf("\n\nPodaj proporcje podzialu na dane trenujace i testowe\n ");
-		scanf_s("%s", proportion, sizeof(proportion));
-		prop = atoi(proportion);
-		if (prop > 0 && prop < 100)
-		{
-			keepAsking = 0;
-		}
-		else
-		{
-			printf("Podano zle proporcje\n");
-		}
-	}
 
 	int trainRows = (oneFileData.rows * prop) / 100;
 	int testRows = oneFileData.rows - trainRows;
@@ -294,7 +346,7 @@ void readOneFile( CsvData* trainData,  CsvData* testData)
 
 	for (i = 0; i < oneFileData.columns + 1; i++)
 	{
-		j = 0;
+		/*j = 0;
 		char c = oneFileData.headers[i][j];
 		while (c != '\0')
 		{
@@ -304,7 +356,10 @@ void readOneFile( CsvData* trainData,  CsvData* testData)
 			c = oneFileData.headers[i][j];
 		}
 		trainData->headers[i][j] = '\0';
-		testData->headers[i][j] = '\0';
+		testData->headers[i][j] = '\0';*/
+
+		strcpy(trainData->headers[i], oneFileData.headers[i]);
+		strcpy(testData->headers[i], oneFileData.headers[i]);
 	}
 
 	for (i = 0; i < trainRows; i++)
@@ -350,7 +405,7 @@ void readOneFile( CsvData* trainData,  CsvData* testData)
 
 void readTwoFiles( CsvData* trainData,  CsvData* testData)
 {
-	char fileName[1024];
+	char fileName[STRINGBUFF];
 	int keepAsking = 1;
 	while (keepAsking == 1)
 	{
@@ -549,7 +604,7 @@ double classificationAccuracy(ClassifiedData set)
 
 void writeAndPrintConfusionMatrix(int** matrix, char** classes, int count, char* type)
 {
-	char fileName[1024];
+	char fileName[STRINGBUFF];
 	strcpy(fileName, type);
 	strcat(fileName, "ConfusionMatrix.csv");
 	FILE *fp = fopen(fileName, "ab+");
@@ -592,7 +647,7 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 	int i, j, any, count;
 	count = 1;
 	char** classes = (char**)malloc(sizeof(char*));
-	classes[count-1] = (char *)malloc(sizeof(char) * 1024);
+	classes[count-1] = (char *)malloc(sizeof(char) * STRINGBUFF);
 	strcpy(classes[0], set.classes[0]);
 	char** tmpClasses;
 	int** cmatrix;
@@ -612,7 +667,7 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 			if (tmpClasses)
 			{
 				classes = tmpClasses;
-				classes[count - 1] = (char *)malloc(sizeof(char) * 1024);
+				classes[count - 1] = (char *)malloc(sizeof(char) * STRINGBUFF);
 				strcpy(classes[count - 1], set.classes[i]);
 			}
 		}
@@ -669,43 +724,65 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 
 int main()
 {
-	 CsvData trainData;
-	 CsvData testData;
-	if (askForFilesNumber() == 1)
+	 CsvData trainData, testData;
+	 int i;
+	 double testRatioSum, trainRatioSum;
+	 testRatioSum = 0;
+	 trainRatioSum = 0;
+
+	 ProgramParams programParams = readProgramParams();
+	 if (programParams.error == 1)
+	 {
+		 printf("Blad wczytania parametrow programu\n");
+		 return EXIT_FAILURE;
+	 }
+
+	if (programParams.fileNumber == 1)
 	{
-		readOneFile(&trainData, &testData);
+		readOneFile(&trainData, &testData, programParams.firstFile, programParams.proportion);
 	}
 	else
 	{
 		readTwoFiles(&trainData, &testData);
 	}
 
-	printf("\n\nWczytano podany zbior trenujacy : \n\n");
+/*	printf("\n\nWczytano podany zbior trenujacy : \n\n");
 	printData(trainData);
 
 	printf("\n\n\n\n");
 	shuffleCsvData(&trainData);
-	shuffleCsvData(&testData);
+	shuffleCsvData(&testData);*/
 
 	
-	printf("\n\nWczytano podany zbior testowy : \n\n");
-	printData(testData);
-	SVMParams params = DefaultParams(trainData.columns);
+/*	printf("\n\nWczytano podany zbior testowy : \n\n");
+	printData(testData);*/
+
+/*	SVMParams params = DefaultParams();
 	params.c = 5;
 	params.c0 = 0;
 	params.kernel = rbf;
 	params.deg = 2;
 	params.gamma = 10;
-	params.tol = 0.00001;
+	params.tol = 0.00001;*/
 
-	ClassificationResult res = classify(trainData, testData, params);
-	createConfusionMatrix(res.testSet, "test");
-	createConfusionMatrix(res.trainSet, "train");
+	for (i = 0; i < programParams.repet; i++)
+	{
+		ClassificationResult res = classify(trainData, testData, programParams.svmParams);
+		createConfusionMatrix(res.testSet, "test");
+		createConfusionMatrix(res.trainSet, "train");
 
-	double trainRatio = classificationAccuracy(res.trainSet);
-	double testRatio = classificationAccuracy(res.testSet);
-	printf("Jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatio);
-	printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatio);
+		double trainRatio = classificationAccuracy(res.trainSet);
+		double testRatio = classificationAccuracy(res.testSet);
+		printf("Jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatio);
+		printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatio);
+
+		trainRatioSum += trainRatio;
+		testRatioSum += testRatio;
+	}
+
+	printf("Wykonano %d powtorzen eksperymentu \n", programParams.repet);
+	printf("Srednia jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatioSum/ programParams.repet);
+	printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatioSum/ programParams.repet);
 
 	
 
@@ -720,12 +797,10 @@ int main()
 		printf("\n\n Zbior testowy po normalizacji : \n\n");
 		printData(testData);
 	}
-	/*
+	
 	crossValidate(trainData, askForCrossValidation(trainData.rows));
 
-	char fileName[10];
-	printf("Podaj proporcje podzialu danych\n");
-	scanf_s("%s", fileName, sizeof(fileName));*/
+	*/
 
 	freeCsvData(testData);
 	freeCsvData(trainData);

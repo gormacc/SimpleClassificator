@@ -1,3 +1,5 @@
+#define STRBUFF 64
+
 typedef struct {
 	int columns;
 	int rows;
@@ -46,4 +48,16 @@ typedef struct {
 	int vectorsCount;// równe liczbie CsvData.rows;
 	int dim;// równe liczbie CsvData.columns;
 }BinaryClassificator;
+
+typedef struct {
+	int error;
+	int fileNumber;
+	char firstFile[STRBUFF*2];
+	char secondFile[STRBUFF*2];
+	int proportion;
+	int normalize;
+	char crossValid[STRBUFF];
+	int repet;
+	SVMParams svmParams;
+}ProgramParams;
 

@@ -1,0 +1,13 @@
+numOfFiles : 1
+firstFile : iris.csv
+secondFile : 
+proportion : 50
+normalize : 1
+crossValid : 5
+repet : 3
+c : 1.0
+kernel : 1
+tol : 0.001
+gamma : 1.0
+c0 : 0.0
+deg : 2
