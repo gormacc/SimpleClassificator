@@ -52,7 +52,7 @@ ProgramParams readProgramParams()
 		}
 		if (strcmp(param, "secondFile") == 0)
 		{
-			strcpy(params.firstFile, value);
+			strcpy(params.secondFile, value);
 		}
 		if (strcmp(param, "proportion") == 0)
 		{
@@ -602,7 +602,8 @@ int main()
 {
 	 CsvData trainData, testData;
 	 int i;
-	 double testRatioSum, trainRatioSum;
+	 double testRatioSum, trainRatioSum, testRatio, trainRatio;
+	 ClassificationResult res;
 	 testRatioSum = 0;
 	 trainRatioSum = 0;
 
@@ -623,6 +624,9 @@ int main()
 		readFile(programParams.secondFile, &testData);
 	}
 
+	printData(trainData);
+	printData(testData);
+
 	if (programParams.normalize == 1)
 	{
 		normalizeData(&trainData);
@@ -637,8 +641,8 @@ int main()
 		createConfusionMatrix(res.testSet, "test");
 		createConfusionMatrix(res.trainSet, "train");
 
-		double trainRatio = classificationAccuracy(res.trainSet);
-		double testRatio = classificationAccuracy(res.testSet);
+		trainRatio = classificationAccuracy(res.trainSet);
+		testRatio = classificationAccuracy(res.testSet);
 		printf("Jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatio);
 		printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatio);
 

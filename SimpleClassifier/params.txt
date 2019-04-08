@@ -1,6 +1,6 @@
-numOfFiles : 1
-firstFile : iris.csv
-secondFile : 
+numOfFiles : 2
+firstFile : train3.csv
+secondFile : test3.csv
 proportion : 50
 normalize : 1
 crossValid : 5
