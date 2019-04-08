@@ -624,9 +624,6 @@ int main()
 		readFile(programParams.secondFile, &testData);
 	}
 
-	printData(trainData);
-	printData(testData);
-
 	if (programParams.normalize == 1)
 	{
 		normalizeData(&trainData);
