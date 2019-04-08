@@ -547,24 +547,62 @@ double classificationAccuracy(ClassifiedData set)
 	return ratio;
 }
 
-void createConfusionMatrix(ClassifiedData test)
+void writeAndPrintConfusionMatrix(int** matrix, char** classes, int count, char* type)
 {
-	if (test.rows == 0) return;
+	char fileName[1024];
+	strcpy(fileName, type);
+	strcat(fileName, "ConfusionMatrix.csv");
+	FILE *fp = fopen(fileName, "ab+");
+	int i,j;
+	if (fp)
+	{
+		printf("\n%s confusion matrix \n", type);
+
+		fprintf(fp, "%s", "X");
+		printf("%s", "X");
+		for (i = 0; i < count; i++)
+		{
+			fprintf(fp, ",%s", classes[i]);
+			printf(",%s", classes[i]);
+		}
+		fprintf(fp, "\r\n");
+		printf("\n");
+
+		for (i = 0; i < count; i++)
+		{
+			fprintf(fp, "%s", classes[i]);
+			printf("%s", classes[i]);
+			for (j = 0; j < count; j++)
+			{
+				fprintf(fp, ",%d", matrix[i][j]);
+				printf(",%d", matrix[i][j]);
+			}
+			fprintf(fp, "\r\n");
+			printf("\n");
+		}
+	}
+	fclose(fp);
+	printf("\n\n");
+}
+
+void createConfusionMatrix(ClassifiedData set, char* type)
+{
+	if (set.rows == 0) return;
 
 	int i, j, any, count;
 	count = 1;
 	char** classes = (char**)malloc(sizeof(char*));
 	classes[count-1] = (char *)malloc(sizeof(char) * 1024);
-	strcpy(classes[0], test.classes[0]);
+	strcpy(classes[0], set.classes[0]);
 	char** tmpClasses;
 	int** cmatrix;
 
-	for (i = 1; i < test.rows; i++)
+	for (i = 1; i < set.rows; i++)
 	{
 		any = 0;
 		for (j = 0; j < count; j++)
 		{
-			if (strcmp(classes[j], test.classes[i]) == 0) any = 1;
+			if (strcmp(classes[j], set.classes[i]) == 0) any = 1;
 		}
 
 		if (any == 0)
@@ -575,7 +613,7 @@ void createConfusionMatrix(ClassifiedData test)
 			{
 				classes = tmpClasses;
 				classes[count - 1] = (char *)malloc(sizeof(char) * 1024);
-				strcpy(classes[count - 1], test.classes[i]);
+				strcpy(classes[count - 1], set.classes[i]);
 			}
 		}
 	}
@@ -603,12 +641,12 @@ void createConfusionMatrix(ClassifiedData test)
 		}
 	}
 
-	for (i = 0; i < test.rows; i++)
+	for (i = 0; i < set.rows; i++)
 	{
 		for (j = 0; j < count; j++)
 		{
-			if (strcmp(test.classes[i], classes[j]) == 0) actual = j;
-			if (strcmp(test.assignedClasses[i], classes[j]) == 0) predicted = j;
+			if (strcmp(set.classes[i], classes[j]) == 0) actual = j;
+			if (strcmp(set.assignedClasses[i], classes[j]) == 0) predicted = j;
 		}
 		cmatrix[predicted][actual] += 1;
 	}
@@ -623,7 +661,11 @@ void createConfusionMatrix(ClassifiedData test)
 		}
 		printf("\n");
 	}*/
+
+	writeAndPrintConfusionMatrix(cmatrix, classes, count, type);
 }
+
+
 
 int main()
 {
@@ -657,7 +699,8 @@ int main()
 	params.tol = 0.00001;
 
 	ClassificationResult res = classify(trainData, testData, params);
-	createConfusionMatrix(res.testSet);
+	createConfusionMatrix(res.testSet, "test");
+	createConfusionMatrix(res.trainSet, "train");
 
 	double trainRatio = classificationAccuracy(res.trainSet);
 	double testRatio = classificationAccuracy(res.testSet);

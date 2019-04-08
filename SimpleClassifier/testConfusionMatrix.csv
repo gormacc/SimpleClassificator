@@ -1,0 +1,8 @@
+X,Iris-setosa,Iris-virginica,Iris-versicolor
+Iris-setosa,22,0,0
+Iris-virginica,0,27,4
+Iris-versicolor,0,0,22
+X,Iris-virginica,Iris-versicolor,Iris-setosa
+Iris-virginica,23,2,3
+Iris-versicolor,0,23,0
+Iris-setosa,0,0,24
