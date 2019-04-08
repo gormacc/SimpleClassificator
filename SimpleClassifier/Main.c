@@ -6,6 +6,20 @@
 
 #define STRINGBUFF 64
 
+ProgramParams readProgramParams();
+CsvData allocCsvData(int rows, int columns);
+void freeCsvData(CsvData csvData);
+void shuffleCsvData(CsvData* data);
+int readFile(char* fileName, CsvData* csvData);
+void readOneFile(CsvData* trainData, CsvData* testData, char* fileName, int prop);
+void normalizeData(CsvData* data);
+int typeOfCrossValidation(char* input, int rows);
+CsvData deleteRowsInSet(CsvData trainData, int startIndex, int endIndex, CsvData* newSet);
+void crossValidate(CsvData trainData, int cvk);
+double classificationAccuracy(ClassifiedData set);
+void writeAndPrintConfusionMatrix(int** matrix, char** classes, int count, char* type);
+void createConfusionMatrix(ClassifiedData set, char* type);
+
 ProgramParams readProgramParams()
 {
 	ProgramParams params;
@@ -112,9 +126,9 @@ void printData( CsvData data)
 	}
 }
 
- CsvData allocCsvData(int rows, int columns)
+CsvData allocCsvData(int rows, int columns)
 {
-	 CsvData csvData;
+	CsvData csvData;
 	int i;
 
 	csvData.columns = columns;
@@ -195,8 +209,13 @@ void shuffleCsvData(CsvData* data)
 
 int readFile(char* fileName,  CsvData* csvData)
 {
-	FILE* stream;
-	errno_t err = fopen_s(&stream, fileName, "r");
+	int rows, columns, crow, cclass;
+	int i, j, k;
+	char c;
+	char preValue[20];
+	double value;
+	char line[STRINGBUFF*20];
+	FILE* stream = fopen(fileName, "r");
 
 	if (NULL == stream)
 	{
@@ -204,9 +223,8 @@ int readFile(char* fileName,  CsvData* csvData)
 		return 0;
 	}
 
-	int rows = 0;
-	int columns = 1;
-	char c;
+	rows = 0;
+	columns = 1;
 	while ((c = fgetc(stream)) != EOF) {
 
 		if (c == ',' && 0 == rows) {
@@ -217,15 +235,11 @@ int readFile(char* fileName,  CsvData* csvData)
 			rows++;
 		}
 	}
-
 	fseek(stream, 0, SEEK_SET);
 
 	*csvData = allocCsvData(rows - 1, columns - 1);
-	char line[STRINGBUFF];
-	int crow = 0;
-	int i, j, k;
-
-	while (fgets(line, STRINGBUFF, stream))
+	crow = 0;
+	while (fgets(line, STRINGBUFF*20-1, stream))
 	{
 		if (0 == crow) // headery
 		{
@@ -253,9 +267,7 @@ int readFile(char* fileName,  CsvData* csvData)
 			i = 0;
 			k = 0;
 			j = 0;
-			char preValue[20];
-			double value;
-			int cclass = 1;
+			cclass = 1;
 
 			while (line[k] != '\n')
 			{
@@ -307,72 +319,30 @@ int readFile(char* fileName,  CsvData* csvData)
 	return 1;
 }
 
-int askForFilesNumber()
-{
-	int keepAsking = 1;
-	int numOfFiles;
-	char answer[10];
-	while (keepAsking == 1)
-	{
-		printf("Podaj ilosc plikow do wczytania\n");
-		scanf_s("%s", answer, sizeof(answer));
-		numOfFiles = atoi(answer);
-		if (numOfFiles == 1 || numOfFiles == 2)
-		{
-			keepAsking = 0;
-		}
-		else
-		{
-			printf("Podano zla ilosc plikow\n");
-		}
-	}
-	return numOfFiles;
-}
-
 void readOneFile(CsvData* trainData,  CsvData* testData, char* fileName, int prop)
 {
 	CsvData oneFileData;
-	if (readFile(fileName, &oneFileData) == 1)
-
+	int trainRows, testRows;
+	int i, j, k;
+	readFile(fileName, &oneFileData);
 	shuffleCsvData(&oneFileData);
 
-	int trainRows = (oneFileData.rows * prop) / 100;
-	int testRows = oneFileData.rows - trainRows;
+	trainRows = (oneFileData.rows * prop) / 100;
+	testRows = oneFileData.rows - trainRows;
 
 	*trainData = allocCsvData(trainRows, oneFileData.columns);
 	*testData = allocCsvData(testRows, oneFileData.columns);
 
-	int i, j, k;
-
 	for (i = 0; i < oneFileData.columns + 1; i++)
 	{
-		/*j = 0;
-		char c = oneFileData.headers[i][j];
-		while (c != '\0')
-		{
-			trainData->headers[i][j] = c;
-			testData->headers[i][j] = c;
-			j++;
-			c = oneFileData.headers[i][j];
-		}
-		trainData->headers[i][j] = '\0';
-		testData->headers[i][j] = '\0';*/
-
 		strcpy(trainData->headers[i], oneFileData.headers[i]);
 		strcpy(testData->headers[i], oneFileData.headers[i]);
 	}
 
 	for (i = 0; i < trainRows; i++)
 	{
-		j = 0;
-		char c = oneFileData.classes[i][j];
-		while (c != '\0')
-		{
-			trainData->classes[i][j] = c;
-			j++;
-			c = oneFileData.classes[i][j];
-		}
-		trainData->classes[i][j] = '\0';
+		strcpy(trainData->classes[i], oneFileData.classes[i]);
+
 
 		for (j = 0; j < oneFileData.columns; j++)
 		{
@@ -383,15 +353,7 @@ void readOneFile(CsvData* trainData,  CsvData* testData, char* fileName, int pro
 	k = 0;
 	for (i = trainRows; i < oneFileData.rows; i++)
 	{
-		j = 0;
-		char c = oneFileData.classes[i][j];
-		while (c != '\0')
-		{
-			testData->classes[k][j] = c;
-			j++;
-			c = oneFileData.classes[i][j];
-		}
-		testData->classes[k][j] = '\0';
+		strcpy(testData->classes[i], oneFileData.classes[i]);
 
 		for (j = 0; j < oneFileData.columns; j++)
 		{
@@ -403,34 +365,7 @@ void readOneFile(CsvData* trainData,  CsvData* testData, char* fileName, int pro
 	freeCsvData(oneFileData);
 }
 
-void readTwoFiles( CsvData* trainData,  CsvData* testData)
-{
-	char fileName[STRINGBUFF];
-	int keepAsking = 1;
-	while (keepAsking == 1)
-	{
-		printf("Podaj nazwe pierwszego pliku\n");
-		scanf_s("%s", fileName, sizeof(fileName));
-		if (readFile(fileName, trainData) == 1)
-		{
-			keepAsking = 0;
-		}
-	}
-
-	keepAsking = 1;
-	while (keepAsking == 1)
-	{
-		printf("Podaj nazwe drugiego pliku\n");
-		scanf_s("%s", fileName, sizeof(fileName));
-		if (readFile(fileName, testData) == 1)
-		{
-			keepAsking = 0;
-		}
-	}
-
-}
-
-void normalizeData( CsvData* data)
+void normalizeData(CsvData* data)
 {
 	double* min = (double *)malloc(sizeof(double) * (data->columns));
 	double* max = (double *)malloc(sizeof(double) * (data->columns));
@@ -465,63 +400,26 @@ void normalizeData( CsvData* data)
 	free(max);
 }
 
-int askForNormalization()
+int typeOfCrossValidation(char* input, int rows)
 {
-	int keepAsking = 1;
-	char answer[10];
-	int normalize;
-	while (keepAsking == 1)
-	{
-		printf("Czy chcesz znormalizowac dane?\n");
-		scanf_s("%s", answer, sizeof(answer));
-
-		if (strcmp(answer, "tak") == 0)
-		{
-			normalize = 1;
-			keepAsking = 0;
-		}
-		else if (strcmp(answer, "nie") == 0)
-		{
-			normalize = 0;
-			keepAsking = 0;
-		}
-		else
-		{
-			printf("Nieoczekiwana odpowiedz\n");
-		}
-	}
-	return normalize;
-}
-
-int askForCrossValidation(int rows)
-{
-	int keepAsking = 1;
-	char answer[10];
 	int cv, val;
-	while (keepAsking == 1)
+	if (strcmp(input, "LOO") == 0)
 	{
-		printf("Podaj typ walidacji\n");
-		scanf_s("%s", answer, sizeof(answer));
-
-		if (strcmp(answer, "LOO") == 0)
+		cv = rows;
+	}
+	else
+	{
+		val = atoi(input);
+		if (val >= 1 && val <= 10)
 		{
-			cv = rows;
-			keepAsking = 0;
-		}
-		else
-		{
-			val = atoi(answer);
-			if (val >= 1 && val <= 10)
-			{
-				cv = val;
-				keepAsking = 0;
-			}
+			cv = val;
 		}
 	}
+
 	return cv;
 }
 
- CsvData deleteRowsInSet( CsvData trainData, int startIndex, int endIndex,  CsvData* newSet)
+CsvData deleteRowsInSet(CsvData trainData, int startIndex, int endIndex,  CsvData* newSet)
 {
 	int rowsCount = trainData.rows - (endIndex - startIndex);
 	*newSet = allocCsvData(rowsCount, trainData.columns);
@@ -562,17 +460,17 @@ int askForCrossValidation(int rows)
 	}
 }
 
-void crossValidate( CsvData trainData, int cvk)
+void crossValidate(CsvData trainData, int cvk)
 {
 	if (cvk == 1)
 	{
 		//run the SVM on one set and return
 	}
 
-	int trainSetAmount = trainData.rows / cvk;
 	int startIndex, endIndex, newEndIndex;
 	int i;
-	 CsvData tempTrainSet;
+	CsvData tempTrainSet;
+	int trainSetAmount = trainData.rows / cvk;
 
 	startIndex = 0;
 	for (int i = 0; i < cvk; i++)
@@ -581,11 +479,10 @@ void crossValidate( CsvData trainData, int cvk)
 		endIndex = newEndIndex > trainData.rows ? trainData.rows : newEndIndex;
 		deleteRowsInSet(trainData, startIndex, endIndex, &tempTrainSet);
 
-		printf("\n\n %d z %d zbiorow testowych z cross walidacji : \n\n", i + 1, cvk);
-		printData(tempTrainSet);
-
 		// run the SVM on the created set
 	}
+
+	freeCsvData(tempTrainSet);
 }
 
 double classificationAccuracy(ClassifiedData set)
@@ -645,6 +542,7 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 	if (set.rows == 0) return;
 
 	int i, j, any, count;
+	int actual, predicted;
 	count = 1;
 	char** classes = (char**)malloc(sizeof(char*));
 	classes[count-1] = (char *)malloc(sizeof(char) * STRINGBUFF);
@@ -673,20 +571,11 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 		}
 	}
 
-	/*printf("Klasy\n\n\n\n");
-
-	for (i = 0; i < count; i++)
-	{
-		printf("%s\n", classes[i]);
-	}*/
-
 	cmatrix = (int**)malloc(sizeof(int*) * (count));
 	for (i = 0; i < count; i++)
 	{
 		cmatrix[i] = (int *)malloc(sizeof(int) * (count));
 	}
-
-	int actual, predicted;
 
 	for (i = 0; i < count; i++)
 	{
@@ -706,21 +595,8 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 		cmatrix[predicted][actual] += 1;
 	}
 
-	/*printf("Matrix\n\n\n\n");
-
-	for (i = 0; i < count; i++)
-	{
-		for (j = 0; j < count; j++)
-		{
-			printf(" %d ", cmatrix[i][j]);
-		}
-		printf("\n");
-	}*/
-
 	writeAndPrintConfusionMatrix(cmatrix, classes, count, type);
 }
-
-
 
 int main()
 {
@@ -743,27 +619,17 @@ int main()
 	}
 	else
 	{
-		readTwoFiles(&trainData, &testData);
+		readFile(programParams.firstFile, &trainData);
+		readFile(programParams.secondFile, &testData);
 	}
 
-/*	printf("\n\nWczytano podany zbior trenujacy : \n\n");
-	printData(trainData);
+	if (programParams.normalize == 1)
+	{
+		normalizeData(&trainData);
+		normalizeData(&testData);
+	}
 
-	printf("\n\n\n\n");
-	shuffleCsvData(&trainData);
-	shuffleCsvData(&testData);*/
-
-	
-/*	printf("\n\nWczytano podany zbior testowy : \n\n");
-	printData(testData);*/
-
-/*	SVMParams params = DefaultParams();
-	params.c = 5;
-	params.c0 = 0;
-	params.kernel = rbf;
-	params.deg = 2;
-	params.gamma = 10;
-	params.tol = 0.00001;*/
+	/* cross validacja */
 
 	for (i = 0; i < programParams.repet; i++)
 	{
@@ -784,29 +650,10 @@ int main()
 	printf("Srednia jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatioSum/ programParams.repet);
 	printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatioSum/ programParams.repet);
 
-	
-
-	/*
-	if (askForNormalization() == 1)
-	{
-		normalizeData(&trainData);
-		normalizeData(&testData);
-
-		printf("\n\n Zbior trenujacy po normalizacji : \n\n");
-		printData(trainData);
-		printf("\n\n Zbior testowy po normalizacji : \n\n");
-		printData(testData);
-	}
-	
-	crossValidate(trainData, askForCrossValidation(trainData.rows));
-
-	*/
-
 	freeCsvData(testData);
 	freeCsvData(trainData);
 
 	system("pause");
 	return 0;
-	//return 0;
 }
 
