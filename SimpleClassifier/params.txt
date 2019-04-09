@@ -1,9 +1,9 @@
 numOfFiles : 2
-firstFile : train3.csv
-secondFile : test3.csv
+firstFile : train5.csv
+secondFile : test5.csv
 proportion : 50
-normalize : 1
-crossValid : LOO
+normalize : 0
+crossValid : 2
 repet : 1
 c : 1.0
 kernel : 1
