@@ -328,7 +328,7 @@ void readOneFile(CsvData* trainData,  CsvData* testData, char* fileName, int pro
 	k = 0;
 	for (i = trainRows; i < oneFileData.rows; i++)
 	{
-		strcpy(testData->classes[i], oneFileData.classes[i]);
+		strcpy(testData->classes[k], oneFileData.classes[i]);
 
 		for (j = 0; j < oneFileData.columns; j++)
 		{
