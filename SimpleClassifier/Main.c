@@ -290,6 +290,8 @@ int readFile(char* fileName,  CsvData* csvData)
 		fclose(stream);
 	}
 
+	shuffleCsvData(csvData);
+
 	return 1;
 }
 
@@ -299,7 +301,6 @@ void readOneFile(CsvData* trainData,  CsvData* testData, char* fileName, int pro
 	int trainRows, testRows;
 	int i, j, k;
 	readFile(fileName, &oneFileData);
-	shuffleCsvData(&oneFileData);
 
 	trainRows = (oneFileData.rows * prop) / 100;
 	testRows = oneFileData.rows - trainRows;
@@ -448,14 +449,16 @@ void crossValidate(CsvData trainData, int cvk, SVMParams params)
 
 	int startIndex, endIndex, newEndIndex;
 	int i;
-	int trainSetAmount = trainData.rows / cvk;
+	int testSetAmount = trainData.rows / cvk;
 
 	startIndex = 0;
+	endIndex = testSetAmount;
 	for (int i = 0; i < cvk; i++)
 	{
-		newEndIndex = startIndex + trainSetAmount;
-		endIndex = newEndIndex > trainData.rows ? trainData.rows : newEndIndex;
 		crossValidateFold(trainData, startIndex, endIndex, params);
+		startIndex = endIndex;
+		newEndIndex = endIndex + testSetAmount;
+		endIndex = newEndIndex > trainData.rows ? trainData.rows : newEndIndex;
 	}
 }
 
@@ -558,7 +561,8 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 			cmatrix[i][j] = 0;
 		}
 	}
-
+	actual = 0;
+	predicted = 0;
 	for (i = 0; i < set.rows; i++)
 	{
 		for (j = 0; j < count; j++)
