@@ -14,8 +14,8 @@ int readFile(char* fileName, CsvData* csvData);
 void readOneFile(CsvData* trainData, CsvData* testData, char* fileName, int prop);
 void normalizeData(CsvData* data);
 int typeOfCrossValidation(char* input, int rows);
-CsvData deleteRowsInSet(CsvData trainData, int startIndex, int endIndex, CsvData* newSet);
-void crossValidate(CsvData trainData, int cvk);
+void crossValidate(CsvData trainData, int cvk, SVMParams params);
+void crossValidateFold(CsvData trainData, int startIndex, int endIndex, SVMParams params);
 double classificationAccuracy(ClassifiedData set);
 void writeAndPrintConfusionMatrix(int** matrix, char** classes, int count, char* type);
 void createConfusionMatrix(ClassifiedData set, char* type);
@@ -98,32 +98,6 @@ ProgramParams readProgramParams()
 
 	fclose(fp);
 	return params;
-}
-
-void printData( CsvData data)
-{
-	int i, j;
-	printf("Headers:\n");
-	for (i = 0; i < data.columns + 1; i++)
-	{
-		printf("%s\n", data.headers[i]);
-	}
-
-	printf("Classes:\n");
-	for (i = 0; i < data.rows; i++)
-	{
-		printf("%s\n", data.classes[i]);
-	}
-
-	printf("Data:\n");
-	for (i = 0; i < data.rows; i++)
-	{
-		for (j = 0; j < data.columns; j++)
-		{
-			printf("%f  ", data.data[i][j]);
-		}
-		printf("\n");
-	}
 }
 
 CsvData allocCsvData(int rows, int columns)
@@ -419,57 +393,61 @@ int typeOfCrossValidation(char* input, int rows)
 	return cv;
 }
 
-CsvData deleteRowsInSet(CsvData trainData, int startIndex, int endIndex,  CsvData* newSet)
+void crossValidateFold(CsvData trainData, int startIndex, int endIndex, SVMParams params)
 {
 	int rowsCount = trainData.rows - (endIndex - startIndex);
-	*newSet = allocCsvData(rowsCount, trainData.columns);
-	int i, j, k;
+	CsvData trainSet, testSet;
+	trainSet = allocCsvData(rowsCount, trainData.columns);
+	testSet = allocCsvData(trainData.rows - rowsCount, trainData.columns);
+	int i, j, k, l;
 
 	for (i = 0; i < trainData.columns + 1; i++)
 	{
-		j = 0;
-		char c = trainData.headers[i][j];
-		while (c != '\0')
-		{
-			newSet->headers[i][j] = c;
-			j++;
-			c = trainData.headers[i][j];
-		}
-		newSet->headers[i][j] = '\0';
+		strcpy(trainSet.headers[i], trainData.headers[i]);
+		strcpy(testSet.headers[i], trainData.headers[i]);
 	}
 
 	k = 0;
+	l = 0;
 	for (i = 0; i < trainData.rows; i++)
 	{
-		if (i >= startIndex && i < endIndex) continue;
-		j = 0;
-		char c = trainData.classes[i][j];
-		while (c != '\0')
+		if (i >= startIndex && i < endIndex) 
 		{
-			newSet->classes[k][j] = c;
-			j++;
-			c = trainData.classes[i][j];
+			strcpy(testSet.classes[k], trainData.classes[i]);
+			for (j = 0; j < trainData.columns; j++)
+			{
+				testSet.data[k][j] = trainData.data[i][j];
+			}
+			k++;
 		}
-		newSet->classes[k][j] = '\0';
-
-		for (j = 0; j < trainData.columns; j++)
+		else
 		{
-			newSet->data[k][j] = trainData.data[i][j];
+			strcpy(trainSet.classes[l], trainData.classes[i]);
+			for (j = 0; j < trainData.columns; j++)
+			{
+				trainSet.data[l][j] = trainData.data[i][j];
+			}
+			l++;
 		}
-		k++;
 	}
+
+	ClassificationResult res = classify(trainSet, testSet, params);
+	createConfusionMatrix(res.testSet, "crossValidTest");
+	createConfusionMatrix(res.trainSet, "crossValidTrain");
+
+	freeCsvData(trainSet);
+	freeCsvData(testSet);
 }
 
-void crossValidate(CsvData trainData, int cvk)
+void crossValidate(CsvData trainData, int cvk, SVMParams params)
 {
 	if (cvk == 1)
 	{
-		//run the SVM on one set and return
+		return;
 	}
 
 	int startIndex, endIndex, newEndIndex;
 	int i;
-	CsvData tempTrainSet;
 	int trainSetAmount = trainData.rows / cvk;
 
 	startIndex = 0;
@@ -477,12 +455,8 @@ void crossValidate(CsvData trainData, int cvk)
 	{
 		newEndIndex = startIndex + trainSetAmount;
 		endIndex = newEndIndex > trainData.rows ? trainData.rows : newEndIndex;
-		deleteRowsInSet(trainData, startIndex, endIndex, &tempTrainSet);
-
-		// run the SVM on the created set
+		crossValidateFold(trainData, startIndex, endIndex, params);
 	}
-
-	freeCsvData(tempTrainSet);
 }
 
 double classificationAccuracy(ClassifiedData set)
@@ -508,7 +482,7 @@ void writeAndPrintConfusionMatrix(int** matrix, char** classes, int count, char*
 	int i,j;
 	if (fp)
 	{
-		printf("\n%s confusion matrix \n", type);
+		printf("%s confusion matrix \n", type);
 
 		fprintf(fp, "%s", "X");
 		printf("%s", "X");
@@ -534,7 +508,7 @@ void writeAndPrintConfusionMatrix(int** matrix, char** classes, int count, char*
 		}
 	}
 	fclose(fp);
-	printf("\n\n");
+	printf("\n");
 }
 
 void createConfusionMatrix(ClassifiedData set, char* type)
@@ -596,12 +570,24 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 	}
 
 	writeAndPrintConfusionMatrix(cmatrix, classes, count, type);
+
+	for (i = 0; i < count; i++)
+	{
+		free(cmatrix[i]);
+	}
+	free(cmatrix);
+
+	for (i = 0; i < count; i++)
+	{
+		free(classes[i]);
+	}
+	free(classes);
 }
 
 int main()
 {
 	 CsvData trainData, testData;
-	 int i;
+	 int i, crossValidType;
 	 double testRatioSum, trainRatioSum, testRatio, trainRatio;
 	 ClassificationResult res;
 	 testRatioSum = 0;
@@ -630,10 +616,13 @@ int main()
 		normalizeData(&testData);
 	}
 
-	/* cross validacja */
+	crossValidType = typeOfCrossValidation(programParams.crossValid, testData.rows);
 
 	for (i = 0; i < programParams.repet; i++)
 	{
+		printf("******************************* poczatek iteracji %d ***************************\n", i + 1);
+
+		crossValidate(testData, crossValidType, programParams.svmParams);
 		ClassificationResult res = classify(trainData, testData, programParams.svmParams);
 		createConfusionMatrix(res.testSet, "test");
 		createConfusionMatrix(res.trainSet, "train");
@@ -645,6 +634,8 @@ int main()
 
 		trainRatioSum += trainRatio;
 		testRatioSum += testRatio;
+
+		printf("******************************* koniec iteracji %d *****************************\n\n", i + 1);
 	}
 
 	printf("Wykonano %d powtorzen eksperymentu \n", programParams.repet);
