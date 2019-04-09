@@ -360,8 +360,13 @@ double K(double* x, double* y, int dim, SVMParams params)
 		break;
 	}
 	case cauchy:
-		res = 1.0 / (1.0 + (norm2(x, y, dim) / (params.c0*params.c0)));
+	{
+		double c = params.c0;
+		if (c == 0.0)
+			c = 1.0;
+		res = 1.0 / (1.0 + (norm2(x, y, dim) / (c*c)));
 		break;
+	}
 	case multiquadratic:
 		res = -sqrt(norm2(x, y, dim) + params.c0*params.c0);
 		break;
