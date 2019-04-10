@@ -23,7 +23,7 @@ void createConfusionMatrix(ClassifiedData set, char* type);
 ProgramParams readProgramParams()
 {
 	ProgramParams params;
-	char line[STRINGBUFF*2], param[STRINGBUFF], value[STRINGBUFF];
+	char line[STRINGBUFF * 2], param[STRINGBUFF], value[STRINGBUFF];
 	FILE *fp = fopen("params.txt", "r");
 
 	if (NULL == fp)
@@ -31,17 +31,17 @@ ProgramParams readProgramParams()
 		params.error = 1;
 		return params;
 	}
-	else 
+	else
 	{
 		params.error = 0;
 	}
 
 	params.svmParams = DefaultParams();
 
-	while (fgets(line, STRINGBUFF*2-1, fp)) 
+	while (fgets(line, STRINGBUFF * 2 - 1, fp))
 	{
 		sscanf(line, "%s : %s", param, value);
-		
+
 		if (strcmp(param, "numOfFiles") == 0)
 		{
 			params.fileNumber = atoi(value);
@@ -128,7 +128,7 @@ CsvData allocCsvData(int rows, int columns)
 	return csvData;
 }
 
-void freeCsvData( CsvData csvData)
+void freeCsvData(CsvData csvData)
 {
 	int i;
 	int columns = csvData.columns;
@@ -163,7 +163,7 @@ void shuffleCsvData(CsvData* data)
 	char tempClass[STRINGBUFF];
 	double tempValue;
 
-	for (i = 0; i < 2* loopCount; i++)
+	for (i = 0; i < 2 * loopCount; i++)
 	{
 		first = rand() % loopCount;
 		second = rand() % loopCount;
@@ -181,14 +181,14 @@ void shuffleCsvData(CsvData* data)
 	}
 }
 
-int readFile(char* fileName,  CsvData* csvData)
+int readFile(char* fileName, CsvData* csvData)
 {
 	int rows, columns, crow, cclass;
 	int i, j, k;
 	char c;
 	char preValue[20];
 	double value;
-	char line[STRINGBUFF*20];
+	char line[STRINGBUFF * 20];
 	FILE* stream = fopen(fileName, "r");
 
 	if (NULL == stream)
@@ -197,30 +197,36 @@ int readFile(char* fileName,  CsvData* csvData)
 		return 0;
 	}
 
-	rows = 0;
+	rows = 1;
 	columns = 1;
+	int wasEndOfLine = 0;
 	while ((c = fgetc(stream)) != EOF) {
 
-		if (c == ',' && 0 == rows) {
+		if (wasEndOfLine)
+		{
+			rows++;
+		}
+		wasEndOfLine = 0;
+		if (c == ',' && 1 == rows) {
 			columns++;
 		}
 
 		if (c == '\n') {
-			rows++;
+			wasEndOfLine = 1;
 		}
 	}
 	fseek(stream, 0, SEEK_SET);
 
 	*csvData = allocCsvData(rows - 1, columns - 1);
 	crow = 0;
-	while (fgets(line, STRINGBUFF*20-1, stream))
+	while (fgets(line, STRINGBUFF * 20 - 1, stream))
 	{
 		if (0 == crow) // headery
 		{
 			i = 0;
 			k = 0;
 			j = 0;
-			while (line[k] != '\n')
+			while (line[k] != '\0')
 			{
 				if (line[k] == ',') {
 					csvData->headers[i][j] = '\0';
@@ -243,7 +249,7 @@ int readFile(char* fileName,  CsvData* csvData)
 			j = 0;
 			cclass = 1;
 
-			while (line[k] != '\n')
+			while (line[k] != '\0')
 			{
 				if (line[k] == ',')
 				{
@@ -295,7 +301,7 @@ int readFile(char* fileName,  CsvData* csvData)
 	return 1;
 }
 
-void readOneFile(CsvData* trainData,  CsvData* testData, char* fileName, int prop)
+void readOneFile(CsvData* trainData, CsvData* testData, char* fileName, int prop)
 {
 	CsvData oneFileData;
 	int trainRows, testRows;
@@ -412,7 +418,7 @@ void crossValidateFold(CsvData trainData, int startIndex, int endIndex, SVMParam
 	l = 0;
 	for (i = 0; i < trainData.rows; i++)
 	{
-		if (i >= startIndex && i < endIndex) 
+		if (i >= startIndex && i < endIndex)
 		{
 			strcpy(testSet.classes[k], trainData.classes[i]);
 			for (j = 0; j < trainData.columns; j++)
@@ -482,7 +488,7 @@ void writeAndPrintConfusionMatrix(int** matrix, char** classes, int count, char*
 	strcpy(fileName, type);
 	strcat(fileName, "ConfusionMatrix.csv");
 	FILE *fp = fopen(fileName, "ab+");
-	int i,j;
+	int i, j;
 	if (fp)
 	{
 		printf("%s confusion matrix \n", type);
@@ -522,7 +528,7 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 	int actual, predicted;
 	count = 1;
 	char** classes = (char**)malloc(sizeof(char*));
-	classes[count-1] = (char *)malloc(sizeof(char) * STRINGBUFF);
+	classes[count - 1] = (char *)malloc(sizeof(char) * STRINGBUFF);
 	strcpy(classes[0], set.classes[0]);
 	char** tmpClasses;
 	int** cmatrix;
@@ -590,19 +596,19 @@ void createConfusionMatrix(ClassifiedData set, char* type)
 
 int main()
 {
-	 CsvData trainData, testData;
-	 int i, crossValidType;
-	 double testRatioSum, trainRatioSum, testRatio, trainRatio;
-	 ClassificationResult res;
-	 testRatioSum = 0;
-	 trainRatioSum = 0;
+	CsvData trainData, testData;
+	int i, crossValidType;
+	double testRatioSum, trainRatioSum, testRatio, trainRatio;
+	ClassificationResult res;
+	testRatioSum = 0;
+	trainRatioSum = 0;
 
-	 ProgramParams programParams = readProgramParams();
-	 if (programParams.error == 1)
-	 {
-		 printf("Blad wczytania parametrow programu\n");
-		 return EXIT_FAILURE;
-	 }
+	ProgramParams programParams = readProgramParams();
+	if (programParams.error == 1)
+	{
+		printf("Blad wczytania parametrow programu\n");
+		return EXIT_FAILURE;
+	}
 
 	if (programParams.fileNumber == 1)
 	{
@@ -643,8 +649,8 @@ int main()
 	}
 
 	printf("Wykonano %d powtorzen eksperymentu \n", programParams.repet);
-	printf("Srednia jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatioSum/ programParams.repet);
-	printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatioSum/ programParams.repet);
+	printf("Srednia jakosc klasyfikacji zbioru trenujacego: %f\n", trainRatioSum / programParams.repet);
+	printf("Jakosc klasyfikacji zbioru testowego: %f\n", testRatioSum / programParams.repet);
 
 	freeCsvData(testData);
 	freeCsvData(trainData);
