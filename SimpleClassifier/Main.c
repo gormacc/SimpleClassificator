@@ -186,9 +186,9 @@ int readFile(char* fileName, CsvData* csvData)
 	int rows, columns, crow, cclass;
 	int i, j, k;
 	char c;
-	char preValue[20];
+	char preValue[25];
 	double value;
-	char line[STRINGBUFF * 20];
+	char line[STRINGBUFF * 25];
 	FILE* stream = fopen(fileName, "r");
 
 	if (NULL == stream)
@@ -219,7 +219,7 @@ int readFile(char* fileName, CsvData* csvData)
 
 	*csvData = allocCsvData(rows - 1, columns - 1);
 	crow = 0;
-	while (fgets(line, STRINGBUFF * 20 - 1, stream))
+	while (fgets(line, STRINGBUFF * 25 - 1, stream))
 	{
 		if (0 == crow) // headery
 		{
